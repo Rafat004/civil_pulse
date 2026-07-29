@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function RegisterPage() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<'civic' | 'admin'>('civic');
@@ -24,6 +25,7 @@ export default function RegisterPage() {
       options: {
         data: {
           role: role,
+          full_name: fullName,
         }
       }
     });
@@ -52,6 +54,18 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleRegister} className="flex flex-col gap-md">
+          <div className="flex flex-col gap-xs">
+            <label className="text-label-md font-label-md text-on-surface-variant">Full Name</label>
+            <input 
+              type="text"
+              required 
+              value={fullName} 
+              onChange={e => setFullName(e.target.value)} 
+              className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors" 
+              placeholder="John Doe" 
+            />
+          </div>
+
           <div className="flex flex-col gap-xs">
             <label className="text-label-md font-label-md text-on-surface-variant">Email</label>
             <input 

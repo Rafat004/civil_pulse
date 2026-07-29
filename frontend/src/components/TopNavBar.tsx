@@ -6,6 +6,10 @@ import { useAuth } from './AuthProvider';
 export default function TopNavBar() {
   const { user, role, signOut } = useAuth();
 
+  // Extract name for Avatar
+  const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const initial = fullName.charAt(0).toUpperCase();
+
   return (
     <nav className="bg-surface border-b border-outline-variant w-full sticky top-0 z-50">
       <div className="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-16 max-w-[1440px] mx-auto">
@@ -57,6 +61,17 @@ export default function TopNavBar() {
                 </button>
               )}
               <div className="flex gap-sm items-center border-l border-outline-variant pl-md ml-sm">
+                
+                {/* User Avatar */}
+                <div className="flex items-center gap-xs mr-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-sm">
+                    {initial}
+                  </div>
+                  <span className="hidden lg:block text-sm font-label-md text-on-surface truncate max-w-[120px]">
+                    {fullName}
+                  </span>
+                </div>
+
                 <button 
                   onClick={signOut}
                   className="flex items-center justify-center text-on-surface-variant hover:text-error transition-colors duration-200 px-sm py-sm rounded-lg hover:bg-error/10 font-label-md text-sm"
