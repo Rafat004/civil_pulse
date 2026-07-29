@@ -72,8 +72,7 @@ export default function MapComponent({ mapId = "default-map", markers = [], inte
     };
   }, [mapKey]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setSearchLoading(true);
     try {
@@ -104,16 +103,23 @@ export default function MapComponent({ mapId = "default-map", markers = [], inte
     <div className="w-full h-full relative z-0">
       {showSearch && (
         <div className="absolute top-md left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto">
-          <form onSubmit={handleSearch} className="flex items-center bg-surface-container rounded-full shadow-lg border border-outline-variant overflow-hidden p-1">
+          <div className="flex items-center bg-surface-container rounded-full shadow-lg border border-outline-variant overflow-hidden p-1">
             <input 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
               placeholder="Search location..." 
               className="bg-transparent text-on-surface text-sm px-4 py-2 outline-none w-48 sm:w-64"
             />
             <button 
-              type="submit" 
+              type="button" 
+              onClick={handleSearch}
               disabled={searchLoading}
               className="bg-primary text-on-primary w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50 flex-shrink-0 mr-1"
             >
@@ -123,7 +129,7 @@ export default function MapComponent({ mapId = "default-map", markers = [], inte
                 <span className="material-symbols-outlined text-[16px]">search</span>
               )}
             </button>
-          </form>
+          </div>
         </div>
       )}
 

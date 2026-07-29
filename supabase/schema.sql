@@ -1,6 +1,11 @@
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Wipe old tables to ensure a clean slate and remove old test data
+DROP TABLE IF EXISTS public.upvotes CASCADE;
+DROP TABLE IF EXISTS public.reports CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
 -- 0. Create Profiles Table (for RBAC)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,

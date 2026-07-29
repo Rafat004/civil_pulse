@@ -173,6 +173,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
                 interactive={true} 
                 onMapClick={(lat, lng) => setLocation({ lat, lng })}
                 selectedLocation={location}
+                showSearch={true}
               />
             </div>
             {location && <span className="text-xs text-primary">Pin placed at: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span>}
