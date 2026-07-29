@@ -1,0 +1,6 @@
+server:
+  port: 8082
+
+supabase:
+  url: ${SUPABASE_URL:https://fxwbxhqjmqtdhtggrpvl.supabase.co/rest/v1/}
+  key: ${SUPABASE_KEY:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4d2J4aHFqbXF0ZGh0Z2dycHZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMDk4MjgsImV4cCI6MjEwMDg4NTgyOH0.9iReJA7RXFyVWDEOpFgVpmZil_Q9P_t8_VNFBGlvFs4}
