@@ -143,10 +143,10 @@ export default function MapComponent({ mapId = "default-map", markers = [], inte
         zoomControl={interactive}
         style={{ height: '100%', width: '100%', background: '#f8f9fa' }}
       >
-        {/* Voyager tiles from CartoDB (Aesthetic warm/color map) */}
+        {/* Detailed Google Maps Roadmap Tiles */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          attribution="&copy; Google Maps"
         />
         <MapUpdater center={mapCenter} />
         
