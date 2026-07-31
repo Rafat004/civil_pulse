@@ -66,6 +66,23 @@ export default function ApprovalsPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
+    
+    // Optimistic UI update
+    setIssues(prev => prev.filter(issue => issue.id !== id));
+
+    const { error } = await supabase
+      .from('reports')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      alert("Failed to delete report: " + error.message);
+      fetchReports(); // Revert on failure
+    }
+  };
+
   const filteredIssues = issues.filter(issue => filter === 'All' || issue.status === filter);
 
   if (authLoading || loading) {
@@ -143,16 +160,29 @@ export default function ApprovalsPage() {
                       <StatusBadge status={issue.status} />
                     </td>
                     <td className="p-md text-right">
-                      <select 
-                        value={issue.status} 
-                        onChange={(e) => handleStatusChange(issue.id, e.target.value as StatusType)}
-                        className="bg-primary/10 text-primary p-2 rounded-lg border border-primary/20 text-sm font-label-md focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
-                      >
-                        <option value="Reported">Reported</option>
-                        <option value="Verified">Verified</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                      </select>
+                      <div className="flex items-center justify-end gap-2">
+                        <select 
+                          value={issue.status} 
+                          onChange={(e) => handleStatusChange(issue.id, e.target.value as StatusType)}
+                          className="bg-primary/10 text-primary p-2 rounded-lg border border-primary/20 text-sm font-label-md focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+                        >
+                          <option value="Reported">Reported</option>
+                          <option value="Verified">Verified</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Resolved">Resolved</option>
+                        </select>
+                        
+                        {/* Only allow deleting Verified or Resolved reports */}
+                        {['Verified', 'Resolved'].includes(issue.status) && (
+                          <button 
+                            onClick={() => handleDelete(issue.id)}
+                            className="bg-error/10 text-error p-2 rounded-lg border border-error/20 hover:bg-error hover:text-white transition-colors flex items-center justify-center"
+                            title="Delete Report"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

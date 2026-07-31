@@ -325,3 +325,7 @@ Roles are assigned during registration and stored in the `profiles` table. Row L
 ## 📜 License
 
 This project is for educational and demonstration purposes.
+
+// The java backend's main work:
+
+Smart Duplicate Detection (/cluster-duplicates): When a user tries to submit a new report on the map, the frontend sends the coordinates to the backend. The backend uses the Haversine formula to calculate the exact distance between the new report and all existing reports. If it finds a similar issue within 500 meters, it flags it as a potential duplicate to prevent spam!

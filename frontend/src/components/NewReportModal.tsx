@@ -16,7 +16,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Infrastructure');
-  const [zone, setZone] = useState('Zone 1');
+  const [zone, setZone] = useState('General'); // Default zone since UI is removed
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -121,35 +121,18 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-md">
-              <div className="flex flex-col gap-sm">
-                <label className="text-label-md font-label-md text-on-surface-variant">Category</label>
-                <select 
-                  value={category} 
-                  onChange={e => setCategory(e.target.value)} 
-                  className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors"
-                >
-                  <option>Infrastructure</option>
-                  <option>Sanitation</option>
-                  <option>Utilities</option>
-                  <option>Public Safety</option>
-                </select>
-              </div>
-              
-              <div className="flex flex-col gap-sm">
-                <label className="text-label-md font-label-md text-on-surface-variant">Zone</label>
-                <select 
-                  value={zone} 
-                  onChange={e => setZone(e.target.value)} 
-                  className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors"
-                >
-                  <option>Zone 1</option>
-                  <option>Zone 2</option>
-                  <option>Zone 3</option>
-                  <option>Zone 4</option>
-                  <option>Zone 5</option>
-                </select>
-              </div>
+            <div className="flex flex-col gap-sm">
+              <label className="text-label-md font-label-md text-on-surface-variant">Category</label>
+              <select 
+                value={category} 
+                onChange={e => setCategory(e.target.value)} 
+                className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors"
+              >
+                <option>Infrastructure</option>
+                <option>Sanitation</option>
+                <option>Utilities</option>
+                <option>Public Safety</option>
+              </select>
             </div>
           </div>
 

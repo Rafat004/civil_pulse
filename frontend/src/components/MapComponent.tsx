@@ -44,6 +44,7 @@ interface MapComponentProps {
     lng: number;
     title: string;
     status: string;
+    image_url?: string;
   }[];
   interactive?: boolean;
   onMapClick?: (lat: number, lng: number) => void;
@@ -54,6 +55,7 @@ interface MapComponentProps {
 export default function MapComponent({ mapId = "default-map", markers = [], interactive = true, onMapClick, selectedLocation, showSearch = false }: MapComponentProps) {
   const [mounted, setMounted] = useState(false);
   const [mapKey] = useState(() => `${mapId}-${Math.random().toString(36).substr(2, 9)}`);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -159,15 +161,46 @@ export default function MapComponent({ mapId = "default-map", markers = [], inte
         )}
         {markers.map((marker) => (
           <Marker key={marker.id} position={[marker.lat, marker.lng]}>
-            <Popup>
-              <div className="flex flex-col gap-1 p-1">
-                <span className="font-label-md text-surface-dim">{marker.title}</span>
-                <span className="text-xs text-primary">{marker.status}</span>
+            <Popup minWidth={220} maxWidth={320}>
+              <div className="flex flex-col gap-1 p-1 w-full min-w-[200px]">
+                {marker.image_url && (
+                  <img 
+                    src={marker.image_url} 
+                    alt={marker.title} 
+                    onClick={() => setExpandedImage(marker.image_url!)}
+                    className="w-full h-32 object-cover rounded-md mb-2 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" 
+                  />
+                )}
+                <span className="font-label-md text-surface-dim font-bold">{marker.title}</span>
+                <span className="text-xs font-semibold text-primary">{marker.status}</span>
               </div>
             </Popup>
           </Marker>
         ))}
       </MapContainer>
+
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-10 cursor-pointer"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center">
+            <button 
+              className="absolute top-4 right-4 bg-black/50 text-white rounded-full p-2 hover:bg-black transition-colors z-50 flex items-center justify-center"
+              onClick={(e) => { e.stopPropagation(); setExpandedImage(null); }}
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+            <img 
+              src={expandedImage} 
+              alt="Expanded" 
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
+              onClick={(e) => e.stopPropagation()} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

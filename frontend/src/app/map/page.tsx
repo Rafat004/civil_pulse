@@ -19,6 +19,7 @@ interface Report {
   status: string;
   lat: number;
   lng: number;
+  image_url?: string;
 }
 
 export default function MapView() {
@@ -28,7 +29,7 @@ export default function MapView() {
     const fetchReports = async () => {
       const { data, error } = await supabase
         .from('reports')
-        .select('id, title, status, lat, lng');
+        .select('id, title, status, lat, lng, image_url');
 
       if (!error && data) {
         setMarkers(data);
