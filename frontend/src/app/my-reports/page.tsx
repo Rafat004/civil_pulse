@@ -56,9 +56,15 @@ export default function MyReports() {
   const underReviewReports = reports.filter(r => r.status !== 'Resolved').length;
 
   return (
-    <main className="flex-grow w-full max-w-[1440px] mx-auto px-margin-mobile md:px-margin-desktop py-xl md:py-3xl flex flex-col gap-2xl">
+    <main className="flex-grow relative w-full max-w-[1440px] mx-auto px-margin-mobile md:px-margin-desktop py-xl md:py-3xl flex flex-col gap-2xl">
+      {/* Animated Background Gradients */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] animate-pulse-slow"></div>
+        <div className="absolute bottom-[-10%] right-[10%] w-[50%] h-[40%] rounded-full bg-secondary/15 blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+      </div>
+
       {/* Header & Stats Area */}
-      <section className="flex flex-col gap-lg">
+      <section className="flex flex-col gap-lg relative z-10 animate-slide-up delay-100">
         <div>
           <h1 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background">My Reported Issues</h1>
           <p className="font-body-md text-body-md text-on-surface-variant mt-xs">Track the progress and status of your civic contributions.</p>
@@ -66,7 +72,7 @@ export default function MyReports() {
 
         {/* Stats Bento */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
-          <div className="bg-surface border border-[#334155] rounded-2xl p-lg flex flex-col gap-xs relative overflow-hidden group">
+          <div className="glass-card backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-3xl p-lg flex flex-col gap-xs relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl animate-slide-up delay-200">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors"></div>
             <span className="font-label-md text-label-md text-on-surface-variant">Total Reports</span>
             <div className="flex items-baseline gap-sm">
@@ -74,7 +80,7 @@ export default function MyReports() {
             </div>
           </div>
 
-          <div className="bg-surface border border-[#334155] rounded-2xl p-lg flex flex-col gap-xs relative overflow-hidden group">
+          <div className="glass-card backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-3xl p-lg flex flex-col gap-xs relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl animate-slide-up delay-300">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-secondary/5 rounded-full blur-2xl group-hover:bg-secondary/10 transition-colors"></div>
             <span className="font-label-md text-label-md text-on-surface-variant">Resolved</span>
             <div className="flex items-baseline gap-sm">
@@ -83,7 +89,7 @@ export default function MyReports() {
             </div>
           </div>
 
-          <div className="bg-surface border border-[#334155] rounded-2xl p-lg flex flex-col gap-xs relative overflow-hidden group">
+          <div className="glass-card backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-3xl p-lg flex flex-col gap-xs relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl animate-slide-up delay-400">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors"></div>
             <span className="font-label-md text-label-md text-on-surface-variant">Under Review</span>
             <div className="flex items-baseline gap-sm">
@@ -95,7 +101,7 @@ export default function MyReports() {
       </section>
 
       {/* Reports List */}
-      <section className="flex flex-col gap-md pb-xl">
+      <section className="flex flex-col gap-md pb-xl relative z-10 animate-slide-up delay-500">
         <div className="flex justify-between items-center border-b border-[#1E293B] pb-sm">
           <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Recent Activity</span>
           <button className="flex items-center gap-xs text-on-surface-variant hover:text-primary text-sm transition-colors">

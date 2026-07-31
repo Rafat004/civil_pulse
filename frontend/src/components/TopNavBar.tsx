@@ -10,34 +10,36 @@ export default function TopNavBar() {
   const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
   const initial = fullName.charAt(0).toUpperCase();
 
+  const glassTabClass = "flex items-center text-on-surface-variant hover:text-on-surface font-label-md text-label-md backdrop-blur-md bg-[#E2DFD0]/10 hover:bg-[#E2DFD0]/30 border border-[#E2DFD0]/30 rounded-full px-5 py-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_4px_15px_rgba(226,223,208,0.2)]";
+
   return (
-    <nav className="bg-surface border-b border-outline-variant w-full sticky top-0 z-50">
+    <nav className="bg-surface/60 backdrop-blur-xl border-b border-white/10 dark:border-white/5 w-full sticky top-0 z-50 shadow-sm">
       <div className="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-16 max-w-[1440px] mx-auto">
         <div className="flex items-center gap-xs">
           <span className="material-symbols-outlined text-primary text-3xl icon-fill">assured_workload</span>
           <span className="font-headline-md text-headline-md font-bold text-primary tracking-tight">CivicPulse</span>
         </div>
         
-        <div className="hidden md:flex gap-lg items-center h-full">
+        <div className="hidden md:flex gap-4 items-center">
           {role === 'admin' ? (
             <>
-              <Link href="/map" className="h-full flex items-center text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors duration-200">
+              <Link href="/map" className={glassTabClass}>
                 Map
               </Link>
-              <Link href="/approvals" className="h-full flex items-center text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors duration-200">
+              <Link href="/approvals" className={glassTabClass}>
                 Approvals
               </Link>
             </>
           ) : (
             <>
-              <Link href="/" className="h-full flex items-center text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors duration-200">
+              <Link href="/" className={glassTabClass}>
                 Dashboard
               </Link>
-              <Link href="/map" className="h-full flex items-center text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors duration-200">
+              <Link href="/map" className={glassTabClass}>
                 Map
               </Link>
               {user && (
-                <Link href="/my-reports" className="h-full flex items-center text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors duration-200">
+                <Link href="/my-reports" className={glassTabClass}>
                   My Reports
                 </Link>
               )}
