@@ -65,7 +65,7 @@ CivicPulse empowers citizens to report, upvote, and track local issues — from 
 
 ## 🏗️ System Architecture
 
-![System Architecture](diagram.png)
+![System Architecture](diagram%20%282%29.svg)
 
 ---
 
