@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import TopNavBar from "@/components/TopNavBar";
-import BottomNavBar from "@/components/BottomNavBar";
+import LayoutShell from "@/components/LayoutShell";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,9 +20,6 @@ export const metadata: Metadata = {
   description: "Community-driven civic complaint prioritization and smart city issue mapping platform.",
 };
 
-import GlobalModalProvider from "@/components/GlobalModalProvider";
-import { AuthProvider } from "@/components/AuthProvider";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,14 +37,9 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-background text-on-background min-h-screen flex flex-col font-body-md text-body-md">
-        <AuthProvider>
-          <TopNavBar />
-          <div className="flex-grow w-full flex flex-col">
-            {children}
-          </div>
-          <BottomNavBar />
-          <GlobalModalProvider />
-        </AuthProvider>
+        <LayoutShell>
+          {children}
+        </LayoutShell>
       </body>
     </html>
   );
