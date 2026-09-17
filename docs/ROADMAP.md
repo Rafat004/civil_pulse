@@ -62,7 +62,7 @@ Current roadmap:
 [x] Phase 1 — Issue Lifecycle
 [x] Phase 2 — Community & Feed
 [x] Phase 3 — Following & Notifications
-[ ] Phase 4 — Admin Operations
+[x] Phase 4 — Admin Operations
 [ ] Phase 5 — Map & Discovery
 [ ] Phase 6 — Smart Features
 [ ] Phase 7 — Polish & Demo Readiness

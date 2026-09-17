@@ -14,6 +14,7 @@ import {
   getIssueById,
   getReportStatusHistory,
 } from "@/services/issues";
+import { getReportsForDuplicateSelection } from "@/services/admin";
 import { getReactionSummary, setReaction } from "@/services/reactions";
 import { createComment, deleteComment, getComments } from "@/services/comments";
 import { followReport, getFollowerCount, isFollowingReport, unfollowReport } from "@/services/following";
@@ -62,9 +63,24 @@ export default function IssueDetailPage() {
   const [adminNote, setAdminNote] = useState<string>("");
   const [adminResolutionNote, setAdminResolutionNote] = useState<string>("");
   const [adminResolutionImage, setAdminResolutionImage] = useState<File | null>(null);
+  const [candidateReports, setCandidateReports] = useState<Array<{ id: string; title: string; category: string; status: string }>>([]);
+  const [adminDuplicateOf, setAdminDuplicateOf] = useState<string>("");
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (adminStatus === "Duplicate" && id) {
+      getReportsForDuplicateSelection(id)
+        .then((candidates) => {
+          setCandidateReports(candidates);
+          if (candidates.length > 0 && !adminDuplicateOf) {
+            setAdminDuplicateOf(candidates[0].id);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [adminStatus, id]);
 
   const fetchIssueData = async () => {
     if (!id) return;
@@ -285,11 +301,25 @@ export default function IssueDetailPage() {
         resolution_image_url = publicUrlData.publicUrl;
       }
 
+      if (adminStatus === "Duplicate") {
+        if (!adminDuplicateOf) {
+          setUpdateError("Please select a canonical issue for this duplicate report.");
+          setUpdating(false);
+          return;
+        }
+        if (adminDuplicateOf === id) {
+          setUpdateError("A report cannot be marked as a duplicate of itself.");
+          setUpdating(false);
+          return;
+        }
+      }
+
       await changeReportStatus({
         reportId: id,
         newStatus: adminStatus,
         note: adminNote.trim() || undefined,
         departmentId: adminDepartmentId || undefined,
+        duplicateOf: adminStatus === "Duplicate" ? adminDuplicateOf || undefined : undefined,
         resolutionNote: adminResolutionNote.trim() || undefined,
         resolutionImageUrl: resolution_image_url,
       });
@@ -344,6 +374,23 @@ export default function IssueDetailPage() {
           <span>/</span>
           <span className="text-on-surface font-mono">{issue.id.slice(0, 8)}...</span>
         </div>
+
+        {/* Duplicate Banner */}
+        {issue.duplicate_of && (
+          <div className="p-md rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-md text-amber-700 dark:text-amber-400">
+            <div className="flex items-center gap-2 font-medium text-sm">
+              <span className="material-symbols-outlined text-amber-600">file_copy</span>
+              <span>This report has been marked as a duplicate.</span>
+            </div>
+            <Link
+              href={`/issues/${issue.duplicate_of}`}
+              className="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-label-md text-xs hover:bg-amber-700 transition-colors flex items-center gap-1"
+            >
+              <span>View Canonical Issue</span>
+              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </Link>
+          </div>
+        )}
 
         {/* Issue Header */}
         <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
@@ -751,6 +798,24 @@ export default function IssueDetailPage() {
                       className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface text-sm focus:outline-none focus:border-primary"
                     />
                   </div>
+
+                  {adminStatus === "Duplicate" && (
+                    <div className="flex flex-col gap-xs pt-xs border-t border-outline-variant/40">
+                      <label className="text-xs font-semibold text-on-surface-variant">Canonical Issue (Duplicate Of)</label>
+                      <select
+                        value={adminDuplicateOf}
+                        onChange={(e) => setAdminDuplicateOf(e.target.value)}
+                        className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface text-sm focus:outline-none focus:border-primary"
+                      >
+                        <option value="">-- Select Canonical Report --</option>
+                        {candidateReports.map((cand) => (
+                          <option key={cand.id} value={cand.id}>
+                            [{cand.status}] {cand.title} ({cand.category})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {adminStatus === "Resolved" && (
                     <div className="flex flex-col gap-md pt-xs border-t border-outline-variant/40">

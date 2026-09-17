@@ -35,12 +35,6 @@ export async function getFollowerCount(reportId: string): Promise<number> {
     p_report_id: reportId,
   });
 
-  if (error) {
-    const { count } = await supabase
-      .from("report_followers")
-      .select("id", { count: "exact", head: true })
-      .eq("report_id", reportId);
-    return count || 0;
-  }
+  if (error) throw error;
   return data || 0;
 }

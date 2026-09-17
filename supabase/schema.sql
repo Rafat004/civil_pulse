@@ -2,9 +2,12 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Wipe old tables to ensure a clean slate and remove old test data
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.report_followers CASCADE;
+DROP TABLE IF EXISTS public.comments CASCADE;
 DROP TABLE IF EXISTS public.report_status_history CASCADE;
-DROP TABLE IF EXISTS public.upvotes CASCADE;
 DROP TABLE IF EXISTS public.report_reactions CASCADE;
+DROP TABLE IF EXISTS public.upvotes CASCADE;
 DROP TABLE IF EXISTS public.reports CASCADE;
 DROP TABLE IF EXISTS public.departments CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
