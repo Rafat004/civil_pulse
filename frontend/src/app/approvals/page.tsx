@@ -204,8 +204,9 @@ export default function ApprovalsPage() {
       await changeReportStatus({
         reportId: issueId,
         newStatus: currentStatus,
-        departmentId: deptId || undefined,
-        note: `Assigned department updated`,
+        departmentId: deptId ? deptId : null,
+        clearDepartment: !deptId,
+        note: deptId ? `Assigned department updated` : `Department unassigned`,
       });
       await fetchAdminData();
     } catch (err) {

@@ -91,6 +91,8 @@ export async function getAdminSummaryMetrics(): Promise<AdminSummaryMetrics> {
     .order("created_at", { ascending: false })
     .limit(6);
 
+  if (historyError) throw historyError;
+
   const recentActivity = (historyData || []).map((h: any) => ({
     id: h.id,
     report_id: h.report_id,

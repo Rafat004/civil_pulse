@@ -167,12 +167,11 @@ export default function IssueDetailPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "report_followers", filter: `report_id=eq.${id}` },
+        { event: "*", schema: "public", table: "reports", filter: `id=eq.${id}` },
         () => {
-          getFollowerCount(id).then(setFollowerCount).catch(console.error);
-          if (user?.id) {
-            isFollowingReport(id, user.id).then(setFollowing).catch(console.error);
-          }
+          getIssueById(id).then((issueData) => {
+            if (issueData) setIssue(issueData);
+          }).catch(console.error);
         }
       )
       .subscribe();
@@ -198,6 +197,8 @@ export default function IssueDetailPage() {
       } else {
         await unfollowReport(id, user.id);
       }
+      const refreshedCount = await getFollowerCount(id);
+      setFollowerCount(refreshedCount);
     } catch (err) {
       console.error("Failed to update follow state:", err);
       // Revert optimistic update
@@ -297,7 +298,7 @@ export default function IssueDetailPage() {
         }
 
         const fileExt = adminResolutionImage.name.split(".").pop();
-        const fileName = `resolution-${id}-${Date.now()}.${fileExt}`;
+        const fileName = `${user.id}/resolution-${id}-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from("reports")
           .upload(fileName, adminResolutionImage);

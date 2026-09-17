@@ -151,9 +151,109 @@ CREATE TRIGGER check_report_update_permissions
   BEFORE UPDATE ON public.reports
   FOR EACH ROW EXECUTE PROCEDURE public.protect_admin_report_fields();
 
+-- Report Creation Normalization Trigger (Normalize INSERT fields for non-admin citizens)
+CREATE OR REPLACE FUNCTION public.normalize_new_report()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT COALESCE((SELECT role = 'admin' FROM public.profiles WHERE id = auth.uid()), false) THEN
+    NEW.status := 'Reported';
+    NEW.department_id := NULL;
+    NEW.duplicate_of := NULL;
+    NEW.resolution_note := NULL;
+    NEW.resolution_image_url := NULL;
+    NEW.resolved_at := NULL;
+    NEW.upvotes_count := 0;
+    NEW.user_id := COALESCE(auth.uid(), NEW.user_id);
+    NEW.created_at := NOW();
+    NEW.updated_at := NOW();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_report_before_insert ON public.reports;
+CREATE TRIGGER on_report_before_insert
+  BEFORE INSERT ON public.reports
+  FOR EACH ROW EXECUTE PROCEDURE public.normalize_new_report();
+
+-- Duplicate Integrity Trigger
+CREATE OR REPLACE FUNCTION public.enforce_duplicate_integrity()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_target_status TEXT;
+BEGIN
+  IF NEW.status = 'Duplicate' THEN
+    IF NEW.duplicate_of IS NULL THEN
+      RAISE EXCEPTION 'Report marked as Duplicate must specify duplicate_of target.';
+    END IF;
+
+    IF NEW.duplicate_of = NEW.id THEN
+      RAISE EXCEPTION 'A report cannot be marked as a duplicate of itself.';
+    END IF;
+
+    SELECT status INTO v_target_status FROM public.reports WHERE id = NEW.duplicate_of;
+
+    IF v_target_status IS NULL THEN
+      RAISE EXCEPTION 'Target duplicate report does not exist.';
+    END IF;
+
+    IF v_target_status IN ('Duplicate', 'Rejected') THEN
+      RAISE EXCEPTION 'Target report cannot be in Duplicate or Rejected status.';
+    END IF;
+  ELSE
+    NEW.duplicate_of := NULL;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS check_duplicate_integrity ON public.reports;
+CREATE TRIGGER check_duplicate_integrity
+  BEFORE INSERT OR UPDATE ON public.reports
+  FOR EACH ROW EXECUTE PROCEDURE public.enforce_duplicate_integrity();
+
+-- Status Metadata Cleanup Trigger (Reopen / Resolve semantics)
+CREATE OR REPLACE FUNCTION public.handle_status_metadata_cleanup()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF OLD.status IS DISTINCT FROM NEW.status THEN
+    IF NEW.status = 'Reopened' THEN
+      NEW.resolution_note := NULL;
+      NEW.resolution_image_url := NULL;
+      NEW.resolved_at := NULL;
+    ELSIF NEW.status = 'Resolved' THEN
+      NEW.resolved_at := NOW();
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_report_status_metadata_cleanup ON public.reports;
+CREATE TRIGGER on_report_status_metadata_cleanup
+  BEFORE UPDATE ON public.reports
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_status_metadata_cleanup();
+
 -- Safeguard: Enforce valid status transitions at database level for any report update
 CREATE OR REPLACE FUNCTION public.validate_report_status_transition()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_valid BOOLEAN := FALSE;
 BEGIN
@@ -174,7 +274,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS check_status_transition ON public.reports;
 CREATE TRIGGER check_status_transition
@@ -311,15 +411,19 @@ CREATE OR REPLACE FUNCTION public.change_report_status(
     p_department_id UUID DEFAULT NULL,
     p_duplicate_of UUID DEFAULT NULL,
     p_resolution_note TEXT DEFAULT NULL,
-    p_resolution_image_url TEXT DEFAULT NULL
+    p_resolution_image_url TEXT DEFAULT NULL,
+    p_clear_department BOOLEAN DEFAULT FALSE
 )
-RETURNS void AS $$
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
     v_old_status TEXT;
     v_is_admin BOOLEAN;
     v_target_status TEXT;
 BEGIN
-    -- Check admin permission
     SELECT (role = 'admin') INTO v_is_admin
     FROM public.profiles
     WHERE id = auth.uid();
@@ -328,7 +432,6 @@ BEGIN
         RAISE EXCEPTION 'Only administrators can update report statuses.';
     END IF;
 
-    -- Fetch current status
     SELECT status INTO v_old_status
     FROM public.reports
     WHERE id = p_report_id;
@@ -337,7 +440,6 @@ BEGIN
         RAISE EXCEPTION 'Report not found.';
     END IF;
 
-    -- Validate duplicate status target
     IF p_new_status = 'Duplicate' THEN
         IF p_duplicate_of IS NULL THEN
             RAISE EXCEPTION 'Duplicate status requires a canonical target report.';
@@ -360,24 +462,37 @@ BEGIN
         END IF;
     END IF;
 
-    -- Set session variable for history note
     IF p_note IS NOT NULL THEN
         PERFORM set_config('civicpulse.status_change_note', p_note, true);
     END IF;
 
-    -- Update report fields (triggers validate transition & log status history)
     UPDATE public.reports
-    SET 
+    SET
         status = p_new_status,
         updated_at = NOW(),
-        department_id = COALESCE(p_department_id, department_id),
-        duplicate_of = COALESCE(p_duplicate_of, duplicate_of),
-        resolution_note = CASE WHEN p_new_status = 'Resolved' THEN COALESCE(p_resolution_note, resolution_note) ELSE resolution_note END,
-        resolution_image_url = CASE WHEN p_new_status = 'Resolved' THEN COALESCE(p_resolution_image_url, resolution_image_url) ELSE resolution_image_url END,
-        resolved_at = CASE WHEN p_new_status = 'Resolved' THEN COALESCE(resolved_at, NOW()) ELSE resolved_at END
+        department_id = CASE
+            WHEN p_clear_department THEN NULL
+            ELSE COALESCE(p_department_id, department_id)
+        END,
+        duplicate_of = CASE WHEN p_new_status = 'Duplicate' THEN p_duplicate_of ELSE NULL END,
+        resolution_note = CASE
+            WHEN p_new_status = 'Resolved' THEN COALESCE(p_resolution_note, resolution_note)
+            WHEN p_new_status = 'Reopened' THEN NULL
+            ELSE resolution_note
+        END,
+        resolution_image_url = CASE
+            WHEN p_new_status = 'Resolved' THEN COALESCE(p_resolution_image_url, resolution_image_url)
+            WHEN p_new_status = 'Reopened' THEN NULL
+            ELSE resolution_image_url
+        END,
+        resolved_at = CASE
+            WHEN p_new_status = 'Resolved' THEN NOW()
+            WHEN p_new_status = 'Reopened' THEN NULL
+            ELSE resolved_at
+        END
     WHERE id = p_report_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- 8. Create Comments Table (Phase 2)
 CREATE TABLE IF NOT EXISTS public.comments (
@@ -388,6 +503,31 @@ CREATE TABLE IF NOT EXISTS public.comments (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Protect Comment Metadata Trigger
+CREATE OR REPLACE FUNCTION public.protect_comment_metadata()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF OLD.id IS DISTINCT FROM NEW.id OR
+     OLD.report_id IS DISTINCT FROM NEW.report_id OR
+     OLD.user_id IS DISTINCT FROM NEW.user_id OR
+     OLD.created_at IS DISTINCT FROM NEW.created_at THEN
+    RAISE EXCEPTION 'Comment system fields (id, report_id, user_id, created_at) cannot be modified.';
+  END IF;
+
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS check_comment_update ON public.comments;
+CREATE TRIGGER check_comment_update
+  BEFORE UPDATE ON public.comments
+  FOR EACH ROW EXECUTE PROCEDURE public.protect_comment_metadata();
 
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 

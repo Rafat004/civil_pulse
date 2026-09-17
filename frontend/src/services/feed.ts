@@ -35,10 +35,12 @@ export async function getPublicFeed(
   const confirmedCountMap: Record<string, number> = {};
 
   if (reportIds.length > 0) {
-    const { data: reactionsData } = await supabase
+    const { data: reactionsData, error: reactionsError } = await supabase
       .from("report_reactions")
       .select("report_id, type")
       .in("report_id", reportIds);
+
+    if (reactionsError) throw reactionsError;
 
     if (reactionsData) {
       reactionsData.forEach((r) => {

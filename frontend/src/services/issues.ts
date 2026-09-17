@@ -46,7 +46,8 @@ export interface ChangeReportStatusParams {
   reportId: string;
   newStatus: ReportStatus;
   note?: string;
-  departmentId?: string;
+  departmentId?: string | null;
+  clearDepartment?: boolean;
   duplicateOf?: string;
   resolutionNote?: string;
   resolutionImageUrl?: string;
@@ -57,6 +58,7 @@ export async function changeReportStatus({
   newStatus,
   note,
   departmentId,
+  clearDepartment,
   duplicateOf,
   resolutionNote,
   resolutionImageUrl,
@@ -70,6 +72,7 @@ export async function changeReportStatus({
     p_duplicate_of: duplicateOf || null,
     p_resolution_note: resolutionNote || null,
     p_resolution_image_url: resolutionImageUrl || null,
+    p_clear_department: clearDepartment || false,
   });
 
   if (rpcError) {

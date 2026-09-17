@@ -15,7 +15,7 @@ public class DispatchController {
         String issueId = (String) dispatchRequest.getOrDefault("issueId", "UNKNOWN");
         String department = (String) dispatchRequest.getOrDefault("department", "UNKNOWN");
         
-        String responseMessage = String.format("Successfully assigned issue %s to department: %s", issueId, department);
+        String responseMessage = String.format("Department recommendation for issue %s: %s (recommendation only; actual assignment must be performed via Supabase)", issueId, department);
         
         return ResponseEntity.ok("{\"status\": \"success\", \"message\": \"" + responseMessage + "\"}");
     }

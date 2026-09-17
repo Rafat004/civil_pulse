@@ -35,7 +35,14 @@ export default function TrendingComplaintCard({
   const [affectedCount, setAffectedCount] = useState(initialAffectedCount);
   const [confirmedCount, setConfirmedCount] = useState(initialConfirmedCount);
   const [hasAffected, setHasAffected] = useState(false);
-  const [status] = useState(initialStatus);
+
+  useEffect(() => {
+    setAffectedCount(initialAffectedCount);
+  }, [initialAffectedCount]);
+
+  useEffect(() => {
+    setConfirmedCount(initialConfirmedCount);
+  }, [initialConfirmedCount]);
 
   useEffect(() => {
     let isMounted = true;
@@ -136,7 +143,7 @@ export default function TrendingComplaintCard({
           </div>
 
           <div className="flex items-center gap-2">
-            <StatusBadge status={status} />
+            <StatusBadge status={initialStatus} />
           </div>
         </div>
       </div>

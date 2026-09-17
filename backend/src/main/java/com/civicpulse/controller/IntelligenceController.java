@@ -37,19 +37,15 @@ public class IntelligenceController {
             List<Map<String, Object>> reports = objectMapper.readValue(reportsJson, new TypeReference<List<Map<String, Object>>>() {});
 
             Map<String, Integer> zoneCounts = new HashMap<>();
-            Map<String, Integer> zoneUpvotes = new HashMap<>();
 
             for (Map<String, Object> report : reports) {
-                String zone = (String) report.get("zone");
-                int upvotes = (Integer) report.get("upvotes_count");
-
+                String zone = (String) report.getOrDefault("zone", "General");
                 zoneCounts.put(zone, zoneCounts.getOrDefault(zone, 0) + 1);
-                zoneUpvotes.put(zone, zoneUpvotes.getOrDefault(zone, 0) + upvotes);
             }
 
             StringBuilder auditResult = new StringBuilder("Fairness Audit Complete. ");
-            for (String zone : zoneCounts.keySet()) {
-                auditResult.append(zone).append(": ").append(zoneCounts.get(zone)).append(" issues (").append(zoneUpvotes.get(zone)).append(" upvotes). ");
+            for (Map.Entry<String, Integer> entry : zoneCounts.entrySet()) {
+                auditResult.append(entry.getKey()).append(": ").append(entry.getValue()).append(" issues. ");
             }
 
             return ResponseEntity.ok("{\"status\": \"success\", \"message\": \"" + auditResult.toString().trim() + "\"}");

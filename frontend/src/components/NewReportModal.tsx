@@ -84,7 +84,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
         }
 
         const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
         const { data, error: uploadError } = await supabase.storage
           .from('reports')
           .upload(fileName, imageFile);
@@ -108,7 +108,6 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
         user_id: user.id,
         image_url,
         status: 'Reported',
-        upvotes_count: 0
       }]);
 
       if (dbError) throw dbError;
