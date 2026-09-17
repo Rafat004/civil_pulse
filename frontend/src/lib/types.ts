@@ -63,8 +63,20 @@ export interface ReactionSummary {
   currentUser: Record<ReactionType, boolean>;
 }
 
+export interface Comment {
+  id: string;
+  report_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+  author_role?: UserRole | null;
+  author_name?: string | null;
+}
+
 export type MapReport = Pick<
   Report,
   "id" | "title" | "status" | "lat" | "lng" | "image_url"
 >;
+
 

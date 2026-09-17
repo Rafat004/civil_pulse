@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS public.profiles CASCADE;
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     role TEXT NOT NULL DEFAULT 'civic',
+    full_name TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -28,14 +29,25 @@ CREATE POLICY "Users can read own profile"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, role)
+  INSERT INTO public.profiles (id, role, full_name)
   VALUES (
     new.id,
-    'civic'
-  );
+    'civic',
+    new.raw_user_meta_data->>'full_name'
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET full_name = EXCLUDED.full_name,
+      role = 'civic';
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Safe public_profiles view exposing only required identity fields
+CREATE OR REPLACE VIEW public.public_profiles AS
+SELECT id, full_name, role
+FROM public.profiles;
+
+GRANT SELECT ON public.public_profiles TO anon, authenticated;
 
 -- Trusted SQL method to promote demo admin account:
 -- UPDATE public.profiles SET role = 'admin' WHERE id = '<user_uuid>';
@@ -193,10 +205,8 @@ CREATE POLICY "Allow public read access to report_status_history"
     ON public.report_status_history FOR SELECT
     USING (true);
 
+-- History must be written only by trusted database triggers/functions
 DROP POLICY IF EXISTS "Allow authenticated inserts on report_status_history" ON public.report_status_history;
-CREATE POLICY "Allow authenticated inserts on report_status_history"
-    ON public.report_status_history FOR INSERT
-    WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Trigger to log initial 'Reported' status history entry upon report creation
 CREATE OR REPLACE FUNCTION public.log_new_report_status_history()
@@ -341,7 +351,55 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 8. Supabase Realtime Setup
+-- 8. Create Comments Table (Phase 2)
+CREATE TABLE IF NOT EXISTS public.comments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    body TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+
+-- Read comments (public)
+DROP POLICY IF EXISTS "Allow public read access to comments" ON public.comments;
+CREATE POLICY "Allow public read access to comments"
+    ON public.comments FOR SELECT
+    USING (true);
+
+-- Insert comments (authenticated users as self)
+DROP POLICY IF EXISTS "Allow authenticated inserts on comments" ON public.comments;
+CREATE POLICY "Allow authenticated inserts on comments"
+    ON public.comments FOR INSERT
+    WITH CHECK (auth.uid() IS NOT NULL AND auth.uid() = user_id);
+
+-- Update comments (comment author or admin)
+DROP POLICY IF EXISTS "Allow users or admins to update comments" ON public.comments;
+CREATE POLICY "Allow users or admins to update comments"
+    ON public.comments FOR UPDATE
+    USING (
+        auth.uid() = user_id OR
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+        )
+    );
+
+-- Delete comments (comment author or admin)
+DROP POLICY IF EXISTS "Allow users or admins to delete comments" ON public.comments;
+CREATE POLICY "Allow users or admins to delete comments"
+    ON public.comments FOR DELETE
+    USING (
+        auth.uid() = user_id OR
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+        )
+    );
+
+-- 9. Supabase Realtime Setup
 BEGIN;
   DROP PUBLICATION IF EXISTS supabase_realtime;
   CREATE PUBLICATION supabase_realtime;
@@ -350,3 +408,5 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.reports;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.report_reactions;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.departments;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.report_status_history;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+

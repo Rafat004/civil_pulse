@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 import StatusBadge from "@/components/StatusBadge";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
-import { REPORT_STATUSES } from "@/lib/constants";
+import { REPORT_STATUSES, getValidNextStatuses } from "@/lib/constants";
 import {
   changeReportStatus,
   getDepartments,
@@ -15,8 +15,9 @@ import {
   getReportStatusHistory,
 } from "@/services/issues";
 import { getReactionSummary, setReaction } from "@/services/reactions";
+import { createComment, deleteComment, getComments } from "@/services/comments";
 import { validateReportImage } from "@/lib/images";
-import type { Department, Report, ReportStatus, ReportStatusHistory } from "@/lib/types";
+import type { Comment, Department, Report, ReportStatus, ReportStatusHistory } from "@/lib/types";
 
 const MapComponent = dynamic(() => import("@/components/MapComponent"), { ssr: false });
 
@@ -29,6 +30,7 @@ export default function IssueDetailPage() {
   const [issue, setIssue] = useState<Report | null>(null);
   const [history, setHistory] = useState<ReportStatusHistory[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +44,11 @@ export default function IssueDetailPage() {
 
   // Before/After tab toggle
   const [imageTab, setImageTab] = useState<"before" | "after">("before");
+
+  // Comments state
+  const [newCommentText, setNewCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   // Admin update form state
   const [adminStatus, setAdminStatus] = useState<ReportStatus>("Reported");
@@ -57,10 +64,11 @@ export default function IssueDetailPage() {
     if (!id) return;
     try {
       setLoading(true);
-      const [issueData, historyData, depsData] = await Promise.all([
+      const [issueData, historyData, depsData, commentsData] = await Promise.all([
         getIssueById(id),
         getReportStatusHistory(id),
         getDepartments(),
+        getComments(id),
       ]);
 
       if (!issueData) {
@@ -72,6 +80,7 @@ export default function IssueDetailPage() {
       setIssue(issueData);
       setHistory(historyData);
       setDepartments(depsData);
+      setComments(commentsData);
       setAdminStatus(issueData.status);
       setAdminDepartmentId(issueData.department_id || "");
       if (issueData.resolution_note) {
@@ -90,6 +99,40 @@ export default function IssueDetailPage() {
 
   useEffect(() => {
     fetchIssueData();
+  }, [id, user?.id]);
+
+  // Supabase Realtime Subscriptions for comments & reactions
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`issue-realtime-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comments", filter: `report_id=eq.${id}` },
+        () => {
+          getComments(id).then(setComments).catch(console.error);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "report_reactions", filter: `report_id=eq.${id}` },
+        () => {
+          getReactionSummary(id, user?.id).then(setReactionSummary).catch(console.error);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "report_status_history", filter: `report_id=eq.${id}` },
+        () => {
+          getReportStatusHistory(id).then(setHistory).catch(console.error);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id, user?.id]);
 
   const handleToggleReaction = async (type: "affected" | "confirmed") => {
@@ -126,6 +169,39 @@ export default function IssueDetailPage() {
       }));
     } finally {
       setReactionLoading(false);
+    }
+  };
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      alert("Please sign in to comment.");
+      return;
+    }
+    if (!newCommentText.trim()) return;
+
+    setSubmittingComment(true);
+    setCommentError(null);
+
+    try {
+      await createComment(id, user.id, newCommentText);
+      setNewCommentText("");
+      const updatedComments = await getComments(id);
+      setComments(updatedComments);
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Failed to post comment.");
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    try {
+      await deleteComment(commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      alert("Failed to delete comment: " + (err instanceof Error ? err.message : "Unknown error"));
     }
   };
 
@@ -215,7 +291,7 @@ export default function IssueDetailPage() {
         <div className="flex items-center gap-2 text-xs text-on-surface-variant">
           <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            Back to Home
+            Back to Feed
           </Link>
           <span>/</span>
           <span>Issues</span>
@@ -264,7 +340,7 @@ export default function IssueDetailPage() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
-          {/* Left Column: Media, Description, Before/After, Map */}
+          {/* Left Column: Media, Description, Before/After, Map, Comments */}
           <div className="lg:col-span-8 flex flex-col gap-lg">
             {/* Before / After Evidence Image Container */}
             {(hasOriginalImage || hasResolutionImage) && (
@@ -371,6 +447,101 @@ export default function IssueDetailPage() {
                   ]}
                 />
               </div>
+            </div>
+
+            {/* Community Comments Section */}
+            <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
+              <h2 className="font-headline-md text-headline-md text-on-surface font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">chat</span>
+                Public Discussion ({comments.length})
+              </h2>
+
+              {/* Comments List */}
+              <div className="flex flex-col gap-sm">
+                {comments.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant py-sm italic">
+                    No comments yet. Be the first to share an update or question!
+                  </p>
+                ) : (
+                  comments.map((comment) => {
+                    const isOfficial = comment.author_role === "admin";
+                    const canDelete = user?.id === comment.user_id || role === "admin";
+
+                    return (
+                      <div
+                        key={comment.id}
+                        className={`p-sm md:p-md rounded-xl border flex flex-col gap-xs ${
+                          isOfficial
+                            ? "bg-primary/5 border-primary/30"
+                            : "bg-surface/50 border-outline-variant/60"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-label-md text-xs font-bold text-on-surface">
+                              {isOfficial ? "Official Response" : "Community Member"}
+                            </span>
+                            {isOfficial && (
+                              <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]">verified</span>
+                                Official
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-on-surface-variant">
+                              {new Date(comment.created_at).toLocaleDateString()} {new Date(comment.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-error/70 hover:text-error transition-colors p-1"
+                                title="Delete comment"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-on-surface whitespace-pre-wrap leading-relaxed">
+                          {comment.body}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* New Comment Input */}
+              <form onSubmit={handleAddComment} className="flex flex-col gap-sm border-t border-outline-variant/40 pt-md mt-xs">
+                {commentError && (
+                  <div className="p-xs bg-error/10 text-error text-xs rounded border border-error/20">
+                    {commentError}
+                  </div>
+                )}
+                <div className="flex gap-sm items-start">
+                  <textarea
+                    rows={2}
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    placeholder={user ? "Add a public comment or update..." : "Please sign in to post a comment."}
+                    disabled={!user || submittingComment}
+                    className="flex-grow bg-surface p-sm rounded-xl border border-outline-variant text-on-surface text-sm focus:outline-none focus:border-primary resize-none disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!user || submittingComment || !newCommentText.trim()}
+                    className="bg-primary text-on-primary px-md py-2.5 rounded-xl font-label-md text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1 h-10 flex-shrink-0"
+                  >
+                    {submittingComment ? (
+                      <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-[16px]">send</span>
+                    )}
+                    <span>Post</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
 
@@ -480,7 +651,7 @@ export default function IssueDetailPage() {
                       onChange={(e) => setAdminStatus(e.target.value as ReportStatus)}
                       className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface text-sm focus:outline-none focus:border-primary"
                     >
-                      {REPORT_STATUSES.map((st) => (
+                      {getValidNextStatuses(issue.status).map((st) => (
                         <option key={st} value={st}>
                           {st}
                         </option>

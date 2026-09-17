@@ -125,10 +125,8 @@ CREATE POLICY "Allow public read access to report_status_history"
     ON public.report_status_history FOR SELECT
     USING (true);
 
+-- History must be written only by trusted database triggers/functions
 DROP POLICY IF EXISTS "Allow authenticated inserts on report_status_history" ON public.report_status_history;
-CREATE POLICY "Allow authenticated inserts on report_status_history"
-    ON public.report_status_history FOR INSERT
-    WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Trigger to log initial 'Reported' status history entry upon report creation
 CREATE OR REPLACE FUNCTION public.log_new_report_status_history()

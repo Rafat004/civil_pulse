@@ -82,14 +82,6 @@ export default function TrendingComplaintCard({
     }
   };
 
-  const handleStatusChange = async (newStatus: StatusType) => {
-    setStatus(newStatus);
-    const { error } = await supabase.from('reports').update({ status: newStatus }).eq('id', id);
-    if (error) {
-      alert("Failed to update status: " + error.message);
-    }
-  };
-
   return (
     <div 
       onClick={handleCardClick}
@@ -132,19 +124,6 @@ export default function TrendingComplaintCard({
           </div>
           
           <div className="flex items-center gap-2">
-            {role === 'admin' ? (
-              <select 
-                value={status} 
-                onChange={(e) => handleStatusChange(e.target.value as StatusType)}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-surface p-1 rounded border border-outline-variant text-on-surface text-xs focus:outline-none"
-              >
-                <option value="Reported">Reported</option>
-                <option value="Verified">Verified</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-              </select>
-            ) : null}
             <StatusBadge status={status} />
           </div>
         </div>

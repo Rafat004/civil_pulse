@@ -11,6 +11,27 @@ export const REPORT_STATUSES = [
   "Reopened",
 ] as const;
 
+export function getValidNextStatuses(currentStatus: string): string[] {
+  switch (currentStatus) {
+    case "Reported":
+      return ["Reported", "Verified", "Rejected", "Duplicate"];
+    case "Verified":
+      return ["Verified", "Assigned", "Duplicate"];
+    case "Assigned":
+      return ["Assigned", "In Progress"];
+    case "In Progress":
+      return ["In Progress", "Resolved"];
+    case "Resolved":
+      return ["Resolved", "Reopened"];
+    case "Reopened":
+      return ["Reopened", "In Progress"];
+    case "Rejected":
+    case "Duplicate":
+    default:
+      return [currentStatus];
+  }
+}
+
 export const REPORT_CATEGORIES = [
   "Roads & Infrastructure",
   "Waste & Sanitation",

@@ -7,7 +7,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import StatusBadge, { StatusType } from '@/components/StatusBadge';
 import { changeReportStatus } from '@/services/issues';
-import { REPORT_STATUSES } from '@/lib/constants';
+import { REPORT_STATUSES, getValidNextStatuses } from '@/lib/constants';
 
 interface Issue {
   id: string;
@@ -65,23 +65,6 @@ export default function ApprovalsPage() {
       });
     } catch (error: any) {
       alert("Failed to update status: " + (error?.message || "Unknown error"));
-      fetchReports(); // Revert on failure
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
-    
-    // Optimistic UI update
-    setIssues(prev => prev.filter(issue => issue.id !== id));
-
-    const { error } = await supabase
-      .from('reports')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      alert("Failed to delete report: " + error.message);
       fetchReports(); // Revert on failure
     }
   };
@@ -163,7 +146,7 @@ export default function ApprovalsPage() {
                           onChange={(e) => handleStatusChange(issue.id, e.target.value as StatusType)}
                           className="bg-primary/10 text-primary p-2 rounded-lg border border-primary/20 text-sm font-label-md focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
                         >
-                          {REPORT_STATUSES.map(st => (
+                          {getValidNextStatuses(issue.status).map(st => (
                             <option key={st} value={st}>{st}</option>
                           ))}
                         </select>
@@ -175,17 +158,6 @@ export default function ApprovalsPage() {
                         >
                           <span className="material-symbols-outlined text-[18px]">open_in_new</span>
                         </Link>
-
-                        {/* Only allow deleting Verified or Resolved reports */}
-                        {['Verified', 'Resolved'].includes(issue.status) && (
-                          <button 
-                            onClick={() => handleDelete(issue.id)}
-                            className="bg-error/10 text-error p-2 rounded-lg border border-error/20 hover:bg-error hover:text-white transition-colors flex items-center justify-center"
-                            title="Delete Report"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>

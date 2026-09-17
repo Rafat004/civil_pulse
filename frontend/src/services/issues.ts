@@ -73,37 +73,6 @@ export async function changeReportStatus({
   });
 
   if (rpcError) {
-    // Fallback if RPC function is not found in database environment
-    console.warn("RPC change_report_status failed, attempting direct table update:", rpcError.message);
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const updatePayload: Record<string, any> = {
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (departmentId !== undefined) updatePayload.department_id = departmentId;
-    if (duplicateOf !== undefined) updatePayload.duplicate_of = duplicateOf;
-    if (newStatus === "Resolved") {
-      if (resolutionNote) updatePayload.resolution_note = resolutionNote;
-      if (resolutionImageUrl) updatePayload.resolution_image_url = resolutionImageUrl;
-      updatePayload.resolved_at = new Date().toISOString();
-    }
-
-    const { error: updateError } = await supabase
-      .from("reports")
-      .update(updatePayload)
-      .eq("id", reportId);
-
-    if (updateError) throw updateError;
-
-    // Record history
-    await supabase.from("report_status_history").insert({
-      report_id: reportId,
-      to_status: newStatus,
-      changed_by: user?.id || null,
-      note: note || null,
-    });
+    throw rpcError;
   }
 }

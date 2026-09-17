@@ -60,7 +60,7 @@ Current roadmap:
 ```text id="06yc84"
 [x] Phase 0 — Foundation & Stabilization
 [x] Phase 1 — Issue Lifecycle
-[ ] Phase 2 — Community & Feed
+[x] Phase 2 — Community & Feed
 [ ] Phase 3 — Following & Notifications
 [ ] Phase 4 — Admin Operations
 [ ] Phase 5 — Map & Discovery
@@ -380,7 +380,7 @@ Phase 1 is complete when:
 
 # 7. Phase 2 — Community & Feed
 
-**Status:** `[ ]`
+**Status:** `[x]`
 
 ## Goal
 
