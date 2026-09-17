@@ -61,7 +61,7 @@ Current roadmap:
 [x] Phase 0 — Foundation & Stabilization
 [x] Phase 1 — Issue Lifecycle
 [x] Phase 2 — Community & Feed
-[ ] Phase 3 — Following & Notifications
+[x] Phase 3 — Following & Notifications
 [ ] Phase 4 — Admin Operations
 [ ] Phase 5 — Map & Discovery
 [ ] Phase 6 — Smart Features
@@ -488,7 +488,7 @@ Phase 2 is complete when:
 
 # 8. Phase 3 — Following & Notifications
 
-**Status:** `[ ]`
+**Status:** `[x]`
 
 ## Goal
 

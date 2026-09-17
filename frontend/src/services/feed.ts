@@ -29,29 +29,35 @@ export async function getPublicFeed(
 
   let reports = (data || []) as unknown as Report[];
 
-  if (sort === "Most Affected") {
-    const reportIds = reports.map((r) => r.id);
-    const affectedCountMap: Record<string, number> = {};
+  // Attach reaction counts to all returned reports
+  const reportIds = reports.map((r) => r.id);
+  const affectedCountMap: Record<string, number> = {};
+  const confirmedCountMap: Record<string, number> = {};
 
-    if (reportIds.length > 0) {
-      const { data: reactionsData, error: reactionsError } = await supabase
-        .from("report_reactions")
-        .select("report_id")
-        .eq("type", "affected")
-        .in("report_id", reportIds);
+  if (reportIds.length > 0) {
+    const { data: reactionsData } = await supabase
+      .from("report_reactions")
+      .select("report_id, type")
+      .in("report_id", reportIds);
 
-      if (!reactionsError && reactionsData) {
-        reactionsData.forEach((r) => {
+    if (reactionsData) {
+      reactionsData.forEach((r) => {
+        if (r.type === "affected") {
           affectedCountMap[r.report_id] = (affectedCountMap[r.report_id] || 0) + 1;
-        });
-      }
+        } else if (r.type === "confirmed") {
+          confirmedCountMap[r.report_id] = (confirmedCountMap[r.report_id] || 0) + 1;
+        }
+      });
     }
+  }
 
-    reports = reports.map((r) => ({
-      ...r,
-      affected_count: affectedCountMap[r.id] || 0,
-    }));
+  reports = reports.map((r) => ({
+    ...r,
+    affected_count: affectedCountMap[r.id] || 0,
+    confirmed_count: confirmedCountMap[r.id] || 0,
+  }));
 
+  if (sort === "Most Affected") {
     reports.sort((a, b) => {
       const countA = (a as any).affected_count || 0;
       const countB = (b as any).affected_count || 0;

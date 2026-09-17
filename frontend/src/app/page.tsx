@@ -36,7 +36,7 @@ export default function Home() {
     loadFeed();
   }, [loadFeed]);
 
-  // Realtime updates for reports on homepage
+  // Realtime updates for reports and reactions on homepage
   useEffect(() => {
     const channel = supabase
       .channel("public-feed-realtime")
@@ -45,6 +45,14 @@ export default function Home() {
         { event: "*", schema: "public", table: "reports" },
         () => {
           // Refetch feed with current sort/filter instead of prepending
+          loadFeed();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "report_reactions" },
+        () => {
+          // Refetch feed when reactions change so Most Affected ordering updates in real-time
           loadFeed();
         }
       )
@@ -171,7 +179,8 @@ export default function Home() {
                 description={report.description}
                 zone={report.zone}
                 status={report.status}
-                upvotes={(report as any).affected_count || report.upvotes_count || 0}
+                affectedCount={(report as any).affected_count || 0}
+                confirmedCount={(report as any).confirmed_count || 0}
                 imageUrl={report.image_url || undefined}
               />
             ))}

@@ -16,6 +16,7 @@ import {
 } from "@/services/issues";
 import { getReactionSummary, setReaction } from "@/services/reactions";
 import { createComment, deleteComment, getComments } from "@/services/comments";
+import { followReport, getFollowerCount, isFollowingReport, unfollowReport } from "@/services/following";
 import { validateReportImage } from "@/lib/images";
 import type { Comment, Department, Report, ReportStatus, ReportStatusHistory } from "@/lib/types";
 
@@ -33,6 +34,11 @@ export default function IssueDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Follow state
+  const [following, setFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
 
   // Reaction state
   const [reactionSummary, setReactionSummary] = useState({
@@ -64,11 +70,13 @@ export default function IssueDetailPage() {
     if (!id) return;
     try {
       setLoading(true);
-      const [issueData, historyData, depsData, commentsData] = await Promise.all([
+      const [issueData, historyData, depsData, commentsData, isFollowing, fCount] = await Promise.all([
         getIssueById(id),
         getReportStatusHistory(id),
         getDepartments(),
         getComments(id),
+        isFollowingReport(id, user?.id),
+        getFollowerCount(id),
       ]);
 
       if (!issueData) {
@@ -81,6 +89,8 @@ export default function IssueDetailPage() {
       setHistory(historyData);
       setDepartments(depsData);
       setComments(commentsData);
+      setFollowing(isFollowing);
+      setFollowerCount(fCount);
       setAdminStatus(issueData.status);
       setAdminDepartmentId(issueData.department_id || "");
       if (issueData.resolution_note) {
@@ -101,7 +111,7 @@ export default function IssueDetailPage() {
     fetchIssueData();
   }, [id, user?.id]);
 
-  // Supabase Realtime Subscriptions for comments & reactions
+  // Supabase Realtime Subscriptions for comments, reactions, status history & followers
   useEffect(() => {
     if (!id) return;
 
@@ -128,12 +138,48 @@ export default function IssueDetailPage() {
           getReportStatusHistory(id).then(setHistory).catch(console.error);
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "report_followers", filter: `report_id=eq.${id}` },
+        () => {
+          getFollowerCount(id).then(setFollowerCount).catch(console.error);
+          if (user?.id) {
+            isFollowingReport(id, user.id).then(setFollowing).catch(console.error);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, [id, user?.id]);
+
+  const handleToggleFollow = async () => {
+    if (!user) {
+      alert("Please sign in to follow this issue.");
+      return;
+    }
+    setFollowLoading(true);
+    const newFollowing = !following;
+    setFollowing(newFollowing);
+    setFollowerCount((prev) => (newFollowing ? prev + 1 : Math.max(0, prev - 1)));
+
+    try {
+      if (newFollowing) {
+        await followReport(id, user.id);
+      } else {
+        await unfollowReport(id, user.id);
+      }
+    } catch (err) {
+      console.error("Failed to update follow state:", err);
+      // Revert optimistic update
+      setFollowing(!newFollowing);
+      setFollowerCount((prev) => (newFollowing ? Math.max(0, prev - 1) : prev + 1));
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const handleToggleReaction = async (type: "affected" | "confirmed") => {
     if (!user) {
@@ -313,7 +359,27 @@ export default function IssueDetailPage() {
                 </span>
               )}
             </div>
-            <StatusBadge status={issue.status} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={followLoading}
+                onClick={handleToggleFollow}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border ${
+                  following
+                    ? "bg-primary text-on-primary border-primary shadow-sm"
+                    : "bg-surface border-outline-variant text-on-surface-variant hover:border-primary/50"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {following ? "notifications_active" : "notifications"}
+                </span>
+                <span>{following ? "Following" : "Follow Issue"}</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-[10px] ml-0.5">
+                  {followerCount}
+                </span>
+              </button>
+              <StatusBadge status={issue.status} />
+            </div>
           </div>
 
           <h1 className="text-headline-lg font-headline-lg text-on-surface font-extrabold leading-tight">

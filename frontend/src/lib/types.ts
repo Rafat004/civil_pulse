@@ -1,4 +1,5 @@
 import type {
+  NOTIFICATION_TYPES,
   REACTION_TYPES,
   REPORT_CATEGORIES,
   REPORT_STATUSES,
@@ -9,6 +10,7 @@ export type UserRole = (typeof USER_ROLES)[number];
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 export type ReportCategory = (typeof REPORT_CATEGORIES)[number];
 export type ReactionType = (typeof REACTION_TYPES)[number];
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface Department {
   id: string;
@@ -72,6 +74,24 @@ export interface Comment {
   updated_at: string;
   author_role?: UserRole | null;
   author_name?: string | null;
+}
+
+export interface ReportFollower {
+  id: string;
+  report_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  report_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  read_at: string | null;
+  created_at: string;
 }
 
 export type MapReport = Pick<

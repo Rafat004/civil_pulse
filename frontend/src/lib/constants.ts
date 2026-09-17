@@ -44,6 +44,14 @@ export const REPORT_CATEGORIES = [
 
 export const REACTION_TYPES = ["affected", "confirmed"] as const;
 
+export const NOTIFICATION_TYPES = [
+  "STATUS_CHANGED",
+  "NEW_COMMENT",
+  "OFFICIAL_UPDATE",
+  "REPORT_RESOLVED",
+  "REPORT_REOPENED",
+] as const;
+
 export const MAX_REPORT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const SUPPORTED_REPORT_IMAGE_TYPES = [
   "image/jpeg",
