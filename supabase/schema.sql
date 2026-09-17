@@ -115,7 +115,8 @@ CREATE TABLE IF NOT EXISTS public.reports (
     resolution_image_url TEXT,
     resolved_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT prevent_self_duplicate CHECK (duplicate_of IS NULL OR duplicate_of <> id)
 );
 
 -- 3. Database Safeguard: Prevent non-admins from modifying administrative / system fields
@@ -316,6 +317,7 @@ RETURNS void AS $$
 DECLARE
     v_old_status TEXT;
     v_is_admin BOOLEAN;
+    v_target_status TEXT;
 BEGIN
     -- Check admin permission
     SELECT (role = 'admin') INTO v_is_admin
@@ -333,6 +335,29 @@ BEGIN
 
     IF v_old_status IS NULL THEN
         RAISE EXCEPTION 'Report not found.';
+    END IF;
+
+    -- Validate duplicate status target
+    IF p_new_status = 'Duplicate' THEN
+        IF p_duplicate_of IS NULL THEN
+            RAISE EXCEPTION 'Duplicate status requires a canonical target report.';
+        END IF;
+
+        IF p_duplicate_of = p_report_id THEN
+            RAISE EXCEPTION 'A report cannot be marked as a duplicate of itself.';
+        END IF;
+
+        SELECT status INTO v_target_status
+        FROM public.reports
+        WHERE id = p_duplicate_of;
+
+        IF v_target_status IS NULL THEN
+            RAISE EXCEPTION 'Canonical target report not found.';
+        END IF;
+
+        IF v_target_status IN ('Duplicate', 'Rejected') THEN
+            RAISE EXCEPTION 'Target report status cannot be Duplicate or Rejected.';
+        END IF;
     END IF;
 
     -- Set session variable for history note

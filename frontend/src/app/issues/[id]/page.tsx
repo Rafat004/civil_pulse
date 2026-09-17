@@ -127,6 +127,17 @@ export default function IssueDetailPage() {
     fetchIssueData();
   }, [id, user?.id]);
 
+  useEffect(() => {
+    if (issue && typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash === "#admin-actions" || hash === "#resolution") {
+        if (getValidNextStatuses(issue.status).includes("Resolved")) {
+          setAdminStatus("Resolved");
+        }
+      }
+    }
+  }, [issue]);
+
   // Supabase Realtime Subscriptions for comments, reactions, status history & followers
   useEffect(() => {
     if (!id) return;
@@ -738,8 +749,8 @@ export default function IssueDetailPage() {
 
             {/* Admin Management Panel (Only visible to Admin role) */}
             {role === "admin" && (
-              <div className="bg-primary/5 border border-primary/20 rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
-                <div className="flex items-center gap-2 text-primary font-bold font-headline-md">
+              <div id="admin-actions" className="bg-primary/5 border border-primary/20 rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md scroll-mt-6">
+                <div id="resolution" className="flex items-center gap-2 text-primary font-bold font-headline-md">
                   <span className="material-symbols-outlined">admin_panel_settings</span>
                   Admin Status Workflow
                 </div>

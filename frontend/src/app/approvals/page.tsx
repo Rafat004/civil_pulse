@@ -116,8 +116,13 @@ export default function ApprovalsPage() {
     };
   }, [role, fetchAdminData]);
 
-  // Handle Direct Status Change or trigger Modal for Duplicate/Reject
+  // Handle Direct Status Change or trigger Modal for Duplicate/Reject or redirect for Resolved
   const handleStatusSelectChange = async (issue: ExtendedReport, newStatus: ReportStatus) => {
+    if (newStatus === "Resolved") {
+      router.push(`/issues/${issue.id}#admin-actions`);
+      return;
+    }
+
     if (newStatus === "Duplicate") {
       try {
         const candidates = await getReportsForDuplicateSelection(issue.id);

@@ -122,6 +122,8 @@ export async function getReportsForDuplicateSelection(currentReportId: string): 
     .from("reports")
     .select("id, title, category, status")
     .neq("id", currentReportId)
+    .neq("status", "Duplicate")
+    .neq("status", "Rejected")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
