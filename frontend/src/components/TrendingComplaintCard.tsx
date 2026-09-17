@@ -1,5 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import StatusBadge, { StatusType } from './StatusBadge';
 import { useAuth } from './AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
@@ -28,6 +30,7 @@ export default function TrendingComplaintCard({
   imageUrl,
   hasUpvoted = false,
 }: TrendingComplaintCardProps) {
+  const router = useRouter();
   const { role, user } = useAuth();
   const [upvoted, setUpvoted] = useState(hasUpvoted);
   const [upvotes, setUpvotes] = useState(initialUpvotes);
@@ -51,6 +54,12 @@ export default function TrendingComplaintCard({
       isMounted = false;
     };
   }, [id, user?.id]);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button, select, a, input')) return;
+    router.push(`/issues/${id}`);
+  };
 
   const handleUpvote = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,7 +91,10 @@ export default function TrendingComplaintCard({
   };
 
   return (
-    <div className="bg-surface rounded-2xl border border-[#334155] p-md complaint-card flex gap-md cursor-pointer relative">
+    <div 
+      onClick={handleCardClick}
+      className="bg-surface rounded-2xl border border-[#334155] p-md complaint-card flex gap-md cursor-pointer relative hover:border-primary/50 transition-colors"
+    >
       {/* Upvote Column */}
       <div className="flex flex-col items-center gap-xs pt-xs">
         <button 
@@ -103,7 +115,9 @@ export default function TrendingComplaintCard({
             <span className="inline-block px-2 py-1 bg-surface-bright text-on-surface-variant font-caption text-caption rounded text-xs mb-1 uppercase tracking-wider border border-outline-variant">
               {category}
             </span>
-            <h3 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface leading-tight">{title}</h3>
+            <Link href={`/issues/${id}`} className="hover:text-primary transition-colors">
+              <h3 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface leading-tight">{title}</h3>
+            </Link>
           </div>
         </div>
         <p className="font-body-md text-body-md text-on-surface-variant line-clamp-2 text-sm">
@@ -145,4 +159,5 @@ export default function TrendingComplaintCard({
     </div>
   );
 }
+
 

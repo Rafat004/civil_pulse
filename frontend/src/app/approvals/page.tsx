@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { StatusType } from '@/components/StatusBadge';
-import StatusBadge from '@/components/StatusBadge';
+import StatusBadge, { StatusType } from '@/components/StatusBadge';
+import { changeReportStatus } from '@/services/issues';
+import { REPORT_STATUSES } from '@/lib/constants';
 
 interface Issue {
   id: string;
@@ -55,13 +57,14 @@ export default function ApprovalsPage() {
       issue.id === id ? { ...issue, status: newStatus } : issue
     ));
 
-    const { error } = await supabase
-      .from('reports')
-      .update({ status: newStatus })
-      .eq('id', id);
-
-    if (error) {
-      alert("Failed to update status: " + error.message);
+    try {
+      await changeReportStatus({
+        reportId: id,
+        newStatus,
+        note: `Status updated via Admin Approvals table`,
+      });
+    } catch (error: any) {
+      alert("Failed to update status: " + (error?.message || "Unknown error"));
       fetchReports(); // Revert on failure
     }
   };
@@ -111,10 +114,9 @@ export default function ApprovalsPage() {
             className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors text-sm"
           >
             <option value="All">All Statuses</option>
-            <option value="Reported">Reported</option>
-            <option value="Verified">Verified</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Resolved">Resolved</option>
+            {REPORT_STATUSES.map(st => (
+              <option key={st} value={st}>{st}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -126,7 +128,6 @@ export default function ApprovalsPage() {
               <tr className="bg-surface border-b border-surface-variant">
                 <th className="p-md font-label-md text-on-surface-variant">Title</th>
                 <th className="p-md font-label-md text-on-surface-variant">Category / Zone</th>
-                <th className="p-md font-label-md text-on-surface-variant">Upvotes</th>
                 <th className="p-md font-label-md text-on-surface-variant">Current Status</th>
                 <th className="p-md font-label-md text-on-surface-variant text-right">Action</th>
               </tr>
@@ -134,26 +135,22 @@ export default function ApprovalsPage() {
             <tbody>
               {filteredIssues.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-xl text-center text-on-surface-variant">No reports found.</td>
+                  <td colSpan={4} className="p-xl text-center text-on-surface-variant">No reports found.</td>
                 </tr>
               ) : (
                 filteredIssues.map((issue) => (
                   <tr key={issue.id} className="border-b border-surface-variant hover:bg-surface/50 transition-colors">
                     <td className="p-md">
-                      <div className="font-label-md text-on-surface">{issue.title}</div>
+                      <Link href={`/issues/${issue.id}`} className="font-label-md text-on-surface hover:text-primary transition-colors font-bold">
+                        {issue.title}
+                      </Link>
                       <div className="text-body-sm text-on-surface-variant line-clamp-1 mt-1 max-w-[300px]">{issue.description}</div>
                     </td>
                     <td className="p-md">
-                      <div className="text-sm text-on-surface">{issue.category}</div>
+                      <div className="text-sm text-on-surface font-medium">{issue.category}</div>
                       <div className="text-xs text-on-surface-variant flex items-center gap-1 mt-1">
                         <span className="material-symbols-outlined text-[14px]">map</span>
                         {issue.zone}
-                      </div>
-                    </td>
-                    <td className="p-md">
-                      <div className="flex items-center gap-1 text-primary-fixed-dim font-bold">
-                        <span className="material-symbols-outlined text-[16px]">keyboard_arrow_up</span>
-                        {issue.upvotes_count}
                       </div>
                     </td>
                     <td className="p-md">
@@ -166,12 +163,19 @@ export default function ApprovalsPage() {
                           onChange={(e) => handleStatusChange(issue.id, e.target.value as StatusType)}
                           className="bg-primary/10 text-primary p-2 rounded-lg border border-primary/20 text-sm font-label-md focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
                         >
-                          <option value="Reported">Reported</option>
-                          <option value="Verified">Verified</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="Resolved">Resolved</option>
+                          {REPORT_STATUSES.map(st => (
+                            <option key={st} value={st}>{st}</option>
+                          ))}
                         </select>
                         
+                        <Link 
+                          href={`/issues/${issue.id}`}
+                          className="bg-surface border border-outline-variant text-on-surface p-2 rounded-lg hover:border-primary transition-colors flex items-center justify-center"
+                          title="View Full Issue Detail"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                        </Link>
+
                         {/* Only allow deleting Verified or Resolved reports */}
                         {['Verified', 'Resolved'].includes(issue.status) && (
                           <button 
@@ -194,3 +198,4 @@ export default function ApprovalsPage() {
     </main>
   );
 }
+

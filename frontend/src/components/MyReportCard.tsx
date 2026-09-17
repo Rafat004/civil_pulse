@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import StatusBadge, { StatusType } from './StatusBadge';
 
@@ -64,7 +65,9 @@ export default function MyReportCard({
                 className="font-headline-md text-headline-md text-on-surface bg-surface-variant/50 border border-outline-variant rounded-md px-2 py-1 outline-none focus:border-primary w-full"
               />
             ) : (
-              <h3 className={`font-headline-md text-headline-md text-on-surface ${isResolved ? 'line-through decoration-[#334155]' : ''}`}>{currentTitle}</h3>
+              <Link href={`/issues/${id}`} className="hover:text-primary transition-colors">
+                <h3 className={`font-headline-md text-headline-md text-on-surface ${isResolved ? 'line-through decoration-[#334155]' : ''}`}>{currentTitle}</h3>
+              </Link>
             )}
           </div>
           <StatusBadge status={status} />
@@ -119,31 +122,32 @@ export default function MyReportCard({
       {/* Action Column */}
       <div className="flex flex-row md:flex-col justify-end md:justify-start items-center md:items-end gap-sm pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-[#1E293B] md:pl-lg">
         <span className="font-caption text-caption text-on-surface-variant flex-grow md:flex-grow-0 mb-auto">{date}</span>
-        <div className="flex gap-2">
-          {isReported ? (
-            isEditing ? (
-              <div className="flex gap-2">
-                <button onClick={() => setIsEditing(false)} className="bg-transparent border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                  Cancel
-                </button>
-                <button onClick={handleSave} disabled={saving} className="bg-primary text-on-primary font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50">
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => setIsEditing(true)} className="bg-surface border border-outline hover:border-primary text-on-surface hover:text-primary font-label-md text-label-md px-4 py-2 rounded-lg transition-colors flex items-center gap-1">
-                <span className="material-symbols-outlined text-[18px]">edit</span>
-                Edit
+        <div className="flex items-center gap-2">
+          {isReported && isEditing && (
+            <div className="flex gap-2">
+              <button onClick={() => setIsEditing(false)} className="bg-transparent border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                Cancel
               </button>
-            )
-          ) : (
-            <button className="text-on-surface-variant hover:text-primary font-label-md text-label-md px-2 py-2 transition-colors flex items-center gap-1 text-sm">
-              <span className="material-symbols-outlined text-[16px]">visibility</span>
-              View Details
+              <button onClick={handleSave} disabled={saving} className="bg-primary text-on-primary font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50">
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          )}
+
+          {isReported && !isEditing && (
+            <button onClick={() => setIsEditing(true)} className="bg-surface border border-outline hover:border-primary text-on-surface hover:text-primary font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+              <span className="material-symbols-outlined text-[18px]">edit</span>
+              Edit
             </button>
           )}
+
+          <Link href={`/issues/${id}`} className="text-on-surface-variant hover:text-primary font-label-md text-label-md px-2 py-1.5 transition-colors flex items-center gap-1 text-sm">
+            <span className="material-symbols-outlined text-[16px]">visibility</span>
+            View Details
+          </Link>
         </div>
       </div>
     </div>
   );
 }
+

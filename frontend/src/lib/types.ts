@@ -10,6 +10,23 @@ export type ReportStatus = (typeof REPORT_STATUSES)[number];
 export type ReportCategory = (typeof REPORT_CATEGORIES)[number];
 export type ReactionType = (typeof REACTION_TYPES)[number];
 
+export interface Department {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
+
+export interface ReportStatusHistory {
+  id: string;
+  report_id: string;
+  from_status: ReportStatus | null;
+  to_status: ReportStatus;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+}
+
 export interface Report {
   id: string;
   user_id: string;
@@ -21,8 +38,15 @@ export interface Report {
   lat: number;
   lng: number;
   image_url: string | null;
+  department_id?: string | null;
+  department?: Department | null;
+  duplicate_of?: string | null;
+  resolution_note?: string | null;
+  resolution_image_url?: string | null;
+  resolved_at?: string | null;
   created_at: string;
   updated_at?: string;
+  upvotes_count?: number;
 }
 
 export interface ReportReaction {
@@ -43,3 +67,4 @@ export type MapReport = Pick<
   Report,
   "id" | "title" | "status" | "lat" | "lng" | "image_url"
 >;
+

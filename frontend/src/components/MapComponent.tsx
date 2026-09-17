@@ -57,13 +57,25 @@ export default function MapComponent({ mapId = "default-map", markers = [], inte
   const [mapKey] = useState(() => `${mapId}-${Math.random().toString(36).substr(2, 9)}`);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   
-  // Search state
+  // Search & center state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([40.7128, -74.0060]);
+  
+  const initialCenter: [number, number] = selectedLocation
+    ? [selectedLocation.lat, selectedLocation.lng]
+    : markers.length > 0
+    ? [markers[0].lat, markers[0].lng]
+    : [40.7128, -74.0060];
+    
+  const [mapCenter, setMapCenter] = useState<[number, number]>(initialCenter);
 
   useEffect(() => {
     setMounted(true);
+    if (selectedLocation) {
+      setMapCenter([selectedLocation.lat, selectedLocation.lng]);
+    } else if (markers.length > 0) {
+      setMapCenter([markers[0].lat, markers[0].lng]);
+    }
     return () => {
       // Fix for React 18 Strict Mode and HMR "Map container is being reused"
       const container = document.getElementById(mapKey);
@@ -72,7 +84,7 @@ export default function MapComponent({ mapId = "default-map", markers = [], inte
         container._leaflet_id = null;
       }
     };
-  }, [mapKey]);
+  }, [mapKey, selectedLocation?.lat, selectedLocation?.lng, markers.length]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -173,6 +185,12 @@ export default function MapComponent({ mapId = "default-map", markers = [], inte
                 )}
                 <span className="font-label-md text-surface-dim font-bold">{marker.title}</span>
                 <span className="text-xs font-semibold text-primary">{marker.status}</span>
+                <a 
+                  href={`/issues/${marker.id}`} 
+                  className="mt-2 inline-flex items-center justify-center gap-1 bg-primary text-on-primary text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors no-underline"
+                >
+                  View Details
+                </a>
               </div>
             </Popup>
           </Marker>

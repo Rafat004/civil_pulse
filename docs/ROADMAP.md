@@ -59,7 +59,7 @@ Current roadmap:
 
 ```text id="06yc84"
 [x] Phase 0 — Foundation & Stabilization
-[ ] Phase 1 — Issue Lifecycle
+[x] Phase 1 — Issue Lifecycle
 [ ] Phase 2 — Community & Feed
 [ ] Phase 3 — Following & Notifications
 [ ] Phase 4 — Admin Operations
@@ -233,7 +233,7 @@ No major new product feature is required during this phase.
 
 # 6. Phase 1 — Issue Lifecycle
 
-**Status:** `[ ]`
+**Status:** `[x]`
 
 ## Goal
 
