@@ -63,7 +63,7 @@ Current roadmap:
 [x] Phase 2 — Community & Feed
 [x] Phase 3 — Following & Notifications
 [x] Phase 4 — Admin Operations
-[ ] Phase 5 — Map & Discovery
+[x] Phase 5 — Map & Discovery
 [ ] Phase 6 — Smart Features
 [ ] Phase 7 — Polish & Demo Readiness
 ```
@@ -676,7 +676,7 @@ Phase 4 is complete when:
 
 # 10. Phase 5 — Map & Discovery
 
-**Status:** `[ ]`
+**Status:** `[x]`
 
 ## Goal
 

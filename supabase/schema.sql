@@ -1,3 +1,5 @@
+-- Civic Pulse - Canonical Target Database Schema (Synchronized with Migrations 001-007)
+
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -30,7 +32,11 @@ CREATE POLICY "Users can read own profile"
 
 -- Trigger to create a profile automatically on signup (enforcing civic role)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO public.profiles (id, role, full_name)
   VALUES (
@@ -43,7 +49,7 @@ BEGIN
       role = 'civic';
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Safe public_profiles view exposing only required identity fields
 CREATE OR REPLACE VIEW public.public_profiles AS
@@ -51,9 +57,6 @@ SELECT id, full_name, role
 FROM public.profiles;
 
 GRANT SELECT ON public.public_profiles TO anon, authenticated;
-
--- Trusted SQL method to promote demo admin account:
--- UPDATE public.profiles SET role = 'admin' WHERE id = '<user_uuid>';
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -119,9 +122,15 @@ CREATE TABLE IF NOT EXISTS public.reports (
     CONSTRAINT prevent_self_duplicate CHECK (duplicate_of IS NULL OR duplicate_of <> id)
 );
 
--- 3. Database Safeguard: Prevent non-admins from modifying administrative / system fields
+-- 3. Report Security & Lifecycle Triggers
+
+-- Protect administrative fields against unauthorized citizen edits
 CREATE OR REPLACE FUNCTION public.protect_admin_report_fields()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_is_admin BOOLEAN;
 BEGIN
@@ -144,7 +153,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS check_report_update_permissions ON public.reports;
 CREATE TRIGGER check_report_update_permissions
@@ -314,13 +323,17 @@ DROP POLICY IF EXISTS "Allow authenticated inserts on report_status_history" ON 
 
 -- Trigger to log initial 'Reported' status history entry upon report creation
 CREATE OR REPLACE FUNCTION public.log_new_report_status_history()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO public.report_status_history (report_id, from_status, to_status, changed_by, note)
   VALUES (new.id, NULL, new.status, new.user_id, 'Report submitted');
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_report_created ON public.reports;
 CREATE TRIGGER on_report_created
@@ -329,7 +342,11 @@ CREATE TRIGGER on_report_created
 
 -- Trigger to log status changes automatically in single transaction
 CREATE OR REPLACE FUNCTION public.log_report_status_change()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_note TEXT;
 BEGIN
@@ -345,7 +362,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_report_status_changed ON public.reports;
 CREATE TRIGGER on_report_status_changed
@@ -567,7 +584,7 @@ CREATE POLICY "Allow users or admins to delete comments"
         )
     );
 
--- 10. Report Followers Table (Phase 3)
+-- 9. Report Followers Table (Phase 3)
 CREATE TABLE IF NOT EXISTS public.report_followers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
@@ -596,19 +613,25 @@ CREATE POLICY "Allow users to unfollow reports"
 
 -- Trusted function for safe public follower counts without exposing follower user IDs
 CREATE OR REPLACE FUNCTION public.get_follower_count(p_report_id UUID)
-RETURNS INTEGER AS $$
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_count INTEGER;
 BEGIN
-  RETURN (
-    SELECT COUNT(*)::INTEGER 
-    FROM public.report_followers 
-    WHERE report_id = p_report_id
-  );
+  SELECT COUNT(*) INTO v_count
+  FROM public.report_followers
+  WHERE report_id = p_report_id;
+
+  RETURN COALESCE(v_count, 0);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 GRANT EXECUTE ON FUNCTION public.get_follower_count(UUID) TO anon, authenticated;
 
--- 11. Notifications Table (Phase 3)
+-- 10. Notifications Table (Phase 3)
 CREATE TABLE IF NOT EXISTS public.notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -635,7 +658,11 @@ CREATE POLICY "Users can update own notification read state"
 
 -- Safeguard: Ensure users can ONLY modify read_at, not administrative/notification payload fields
 CREATE OR REPLACE FUNCTION public.protect_notification_fields()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   IF OLD.user_id IS DISTINCT FROM NEW.user_id OR
      OLD.report_id IS DISTINCT FROM NEW.report_id OR
@@ -647,17 +674,21 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS check_notification_update_permissions ON public.notifications;
 CREATE TRIGGER check_notification_update_permissions
   BEFORE UPDATE ON public.notifications
   FOR EACH ROW EXECUTE PROCEDURE public.protect_notification_fields();
 
--- 12. Trusted Triggers for Notification Generation
+-- 11. Trusted Triggers for Notification Generation
 
 CREATE OR REPLACE FUNCTION public.notify_report_status_change()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_type TEXT;
   v_title TEXT;
@@ -694,7 +725,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_report_status_changed_notify ON public.reports;
 CREATE TRIGGER on_report_status_changed_notify
@@ -702,7 +733,11 @@ CREATE TRIGGER on_report_status_changed_notify
   FOR EACH ROW EXECUTE PROCEDURE public.notify_report_status_change();
 
 CREATE OR REPLACE FUNCTION public.notify_new_comment()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_report_title TEXT;
   v_author_role TEXT;
@@ -735,14 +770,14 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_comment_created_notify ON public.comments;
 CREATE TRIGGER on_comment_created_notify
   AFTER INSERT ON public.comments
   FOR EACH ROW EXECUTE PROCEDURE public.notify_new_comment();
 
--- 13. Supabase Realtime Setup
+-- 12. Supabase Realtime Setup
 BEGIN;
   DROP PUBLICATION IF EXISTS supabase_realtime;
   CREATE PUBLICATION supabase_realtime;
@@ -755,3 +790,43 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.report_followers;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
 
+-- 13. Storage Bucket 'reports' & RLS Policies (Post-Audit Hardening)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('reports', 'reports', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Public Read Access for Reports Bucket" ON storage.objects;
+CREATE POLICY "Public Read Access for Reports Bucket"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'reports');
+
+DROP POLICY IF EXISTS "Authenticated User Folder Upload for Reports Bucket" ON storage.objects;
+CREATE POLICY "Authenticated User Folder Upload for Reports Bucket"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'reports' AND
+    auth.uid() IS NOT NULL AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+DROP POLICY IF EXISTS "User or Admin Manage Files for Reports Bucket" ON storage.objects;
+CREATE POLICY "User or Admin Manage Files for Reports Bucket"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'reports' AND
+    (
+      (storage.foldername(name))[1] = auth.uid()::text OR
+      EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS "User or Admin Delete Files for Reports Bucket" ON storage.objects;
+CREATE POLICY "User or Admin Delete Files for Reports Bucket"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'reports' AND
+    (
+      (storage.foldername(name))[1] = auth.uid()::text OR
+      EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    )
+  );
