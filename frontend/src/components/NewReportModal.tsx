@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from './AuthProvider';
+import { intelligenceApiUrl } from '@/lib/config';
+import { validateReportImage } from '@/lib/images';
+import { REPORT_CATEGORIES } from '@/lib/constants';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
 
@@ -8,19 +12,32 @@ interface NewReportModalProps {
   onClose: () => void;
 }
 
-import { useAuth } from './AuthProvider';
-
 export default function NewReportModal({ onClose }: NewReportModalProps) {
   const { user } = useAuth();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Infrastructure');
+  const [category, setCategory] = useState<string>(REPORT_CATEGORIES[0]);
   const [zone, setZone] = useState('General'); // Default zone since UI is removed
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      const validationError = validateReportImage(file);
+      if (validationError) {
+        setError(validationError);
+        setImageFile(null);
+        e.target.value = '';
+        return;
+      }
+    }
+    setError(null);
+    setImageFile(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,24 +53,36 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
     setError(null);
 
     try {
-      // 1. Check for duplicates using Intelligence API
-      const dupCheckRes = await fetch('http://localhost:8082/api/v1/intelligence/cluster-duplicates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat: location.lat, lng: location.lng, title })
-      });
-      const dupCheckData = await dupCheckRes.json();
-      
-      if (dupCheckData.is_duplicate) {
-        if (!confirm(`Warning: ${dupCheckData.message}\n\nDo you still want to submit this?`)) {
+      // 1. Check for duplicates using Intelligence API (Advisory check)
+      try {
+        const dupCheckRes = await fetch(intelligenceApiUrl('/cluster-duplicates'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat: location.lat, lng: location.lng, title })
+        });
+        if (dupCheckRes.ok) {
+          const dupCheckData = await dupCheckRes.json();
+          if (dupCheckData.is_duplicate) {
+            if (!confirm(`Warning: ${dupCheckData.message}\n\nDo you still want to submit this?`)) {
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      } catch (dupErr) {
+        console.warn('Duplicate detection service unavailable, continuing with submission:', dupErr);
+      }
+
+      // 2. Validate & Upload Image (if provided)
+      let image_url = null;
+      if (imageFile) {
+        const validationError = validateReportImage(imageFile);
+        if (validationError) {
+          setError(validationError);
           setLoading(false);
           return;
         }
-      }
 
-      // 2. Upload Image (if provided)
-      let image_url = null;
-      if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const { data, error: uploadError } = await supabase.storage
@@ -68,7 +97,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
         image_url = publicUrlData.publicUrl;
       }
 
-      // 3. Insert into Supabase
+      // 3. Insert into Supabase (enforcing user_id = auth.uid())
       const { error: dbError } = await supabase.from('reports').insert([{
         title,
         description,
@@ -128,10 +157,11 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
                 onChange={e => setCategory(e.target.value)} 
                 className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors"
               >
-                <option>Infrastructure</option>
-                <option>Sanitation</option>
-                <option>Utilities</option>
-                <option>Public Safety</option>
+                {REPORT_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -163,11 +193,11 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
           </div>
 
           <div className="flex flex-col gap-sm">
-            <label className="text-label-md font-label-md text-on-surface-variant">Photo Evidence (Optional)</label>
+            <label className="text-label-md font-label-md text-on-surface-variant">Photo Evidence (Optional, max 5 MB)</label>
             <input 
               type="file" 
-              accept="image/*" 
-              onChange={e => setImageFile(e.target.files?.[0] || null)} 
+              accept="image/jpeg,image/png,image/webp" 
+              onChange={handleImageChange} 
               className="text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-colors cursor-pointer"
             />
           </div>
@@ -203,3 +233,4 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
     </div>
   );
 }
+

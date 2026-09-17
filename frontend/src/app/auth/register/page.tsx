@@ -5,14 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type AccountRole = "civic" | "admin";
-
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<AccountRole>("civic");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -41,7 +38,6 @@ export default function RegisterPage() {
       password,
       options: {
         data: {
-          role,
           full_name: fullName.trim(),
         },
       },
@@ -169,46 +165,19 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <fieldset className="register-role-group">
-              <legend>How will you use CivicPulse?</legend>
-              <div className="register-role-options">
-                <button
-                  type="button"
-                  className={`register-role-option ${role === "civic" ? "is-selected" : ""}`}
-                  onClick={() => setRole("civic")}
-                  aria-pressed={role === "civic"}
-                >
-                  <span className="material-symbols-outlined" aria-hidden="true">home_pin</span>
-                  <span>
-                    <strong>Resident</strong>
-                    <small>Report and follow issues</small>
-                  </span>
-                  <span className="register-role-check material-symbols-outlined" aria-hidden="true">
-                    check_circle
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className={`register-role-option ${role === "admin" ? "is-selected" : ""}`}
-                  onClick={() => setRole("admin")}
-                  aria-pressed={role === "admin"}
-                >
-                  <span className="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
-                  <span>
-                    <strong>Administrator</strong>
-                    <small>Review and manage reports</small>
-                  </span>
-                  <span className="register-role-check material-symbols-outlined" aria-hidden="true">
-                    check_circle
-                  </span>
-                </button>
+            <div className="register-role-group" aria-label="Account type">
+              <span>Account type</span>
+              <div className="register-role-option is-selected">
+                <span className="material-symbols-outlined" aria-hidden="true">home_pin</span>
+                <span>
+                  <strong>Citizen</strong>
+                  <small>Report issues and support your community</small>
+                </span>
+                <span className="register-role-check material-symbols-outlined" aria-hidden="true">
+                  check_circle
+                </span>
               </div>
-              {role === "admin" && (
-                <p className="register-role-note">
-                  Administrator registration is enabled for this demonstration.
-                </p>
-              )}
-            </fieldset>
+            </div>
 
             <div className="register-field">
               <label htmlFor="password">Password</label>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,147 +11,168 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isOn, setIsOn] = useState(false);
-  const [tugged, setTugged] = useState(false);
   const router = useRouter();
 
-  const handlePullChain = useCallback(() => {
-    // Trigger tug animation
-    setTugged(true);
-    setTimeout(() => setTugged(false), 600);
-    // Toggle lamp
-    setIsOn((prev) => !prev);
-  }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
       password,
     });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push("/");
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    router.push("/");
   };
 
   return (
-    <div className={`lamp-scene ${isOn ? "lamp-scene--on" : "lamp-scene--off"}`}>
-      {/* Branding */}
-      <Link href="/" className="auth-brand">
-        <span className="material-symbols-outlined auth-brand-icon" style={{ fontVariationSettings: "'FILL' 1" }}>
-          assured_workload
-        </span>
-        <span className="auth-brand-name">CivicPulse</span>
-      </Link>
+    <main className="register-page">
+      <header className="register-header">
+        <Link href="/" className="register-brand" aria-label="CivicPulse home">
+          <span className="register-brand-mark" aria-hidden="true">
+            <span className="material-symbols-outlined">assured_workload</span>
+          </span>
+          <span>CivicPulse</span>
+        </Link>
 
-      {/* Title */}
-      <div className="lamp-title">Login Form</div>
-
-      {/* Prompt to interact */}
-      <div className="lamp-prompt">Click the pull chain to turn on the lamp</div>
-
-      {/* ── Desk Lamp ── */}
-      <div className="lamp-container">
-        {/* Light effects (behind lamp) */}
-        <div className="lamp-light-cone"></div>
-        <div className="lamp-ambient-glow"></div>
-
-        {/* Lamp dome */}
-        <div className="lamp-dome">
-          {/* Pull chain hangs from the dome */}
-          <div
-            className={`pull-chain ${tugged ? "pull-chain--tugged" : ""}`}
-            onClick={handlePullChain}
-            role="button"
-            aria-label="Toggle lamp"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") handlePullChain();
-            }}
-          >
-            <div className="pull-chain-string"></div>
-            <div className="pull-chain-ball"></div>
-          </div>
-
-          {/* Bulb glow */}
-          <div className="lamp-bulb-glow"></div>
+        <div className="register-header-action">
+          <span>New to CivicPulse?</span>
+          <Link href="/auth/register">Create account</Link>
         </div>
+      </header>
 
-        {/* Lamp stem */}
-        <div className="lamp-stem"></div>
-
-        {/* Lamp base */}
-        <div className="lamp-base"></div>
-
-        {/* Surface glow */}
-        <div className="lamp-surface-glow"></div>
-      </div>
-
-      {/* ── Glassmorphism Login Form ── */}
-      <div className="auth-glass-form">
-        <h2>Welcome</h2>
-
-        {error && <div className="auth-error">{error}</div>}
-
-        <form onSubmit={handleLogin}>
-          <div className="auth-input-group">
-            <label>Username</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter name"
-              autoComplete="email"
-            />
+      <div className="register-layout">
+        <section className="register-intro" aria-labelledby="login-intro-title">
+          <div className="register-eyebrow">
+            <span className="register-eyebrow-dot" aria-hidden="true" />
+            Welcome back
           </div>
 
-          <div className="auth-input-group">
-            <label>Password</label>
-            <div className="auth-password-wrapper">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter Password"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="auth-password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
-                  {showPassword ? "visibility_off" : "visibility"}
-                </span>
-              </button>
+          <h1 id="login-intro-title">
+            Stay connected to <span>your community.</span>
+          </h1>
+          <p className="register-intro-copy">
+            Sign in to follow your reports, see what is changing nearby, and keep
+            important civic issues moving forward.
+          </p>
+
+          <div className="register-journey" aria-label="What you can do in CivicPulse">
+            <div className="register-journey-line" aria-hidden="true" />
+            <div className="register-journey-item">
+              <span className="register-step-number">01</span>
+              <div>
+                <strong>Pick up where you left off</strong>
+                <p>See your submitted reports and their latest status.</p>
+              </div>
+            </div>
+            <div className="register-journey-item">
+              <span className="register-step-number">02</span>
+              <div>
+                <strong>Follow local priorities</strong>
+                <p>Explore nearby issues and support what matters most.</p>
+              </div>
+            </div>
+            <div className="register-journey-item">
+              <span className="register-step-number">03</span>
+              <div>
+                <strong>See progress clearly</strong>
+                <p>Track every update from initial report to resolution.</p>
+              </div>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="auth-gold-btn"
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
+          <div className="register-trust-note">
+            <span className="material-symbols-outlined" aria-hidden="true">shield_lock</span>
+            <span>Your CivicPulse session is securely managed by Supabase.</span>
+          </div>
+        </section>
 
-        <div className="auth-switch-link">
-          Don&apos;t have an account?{" "}
-          <Link href="/auth/register">Sign Up</Link>
-        </div>
+        <section className="register-card login-card" aria-labelledby="login-form-title">
+          <div className="register-card-heading">
+            <span className="register-card-kicker">Account access</span>
+            <h2 id="login-form-title">Sign in to CivicPulse</h2>
+            <p>Use the email and password linked to your account.</p>
+          </div>
+
+          {error && (
+            <div className="register-error" role="alert">
+              <span className="material-symbols-outlined" aria-hidden="true">error</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form className="register-form" onSubmit={handleLogin}>
+            <div className="register-field">
+              <label htmlFor="login-email">Email address</label>
+              <div className="register-input-wrap">
+                <span className="material-symbols-outlined" aria-hidden="true">mail</span>
+                <input
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="register-field">
+              <label htmlFor="login-password">Password</label>
+              <div className="register-input-wrap">
+                <span className="material-symbols-outlined" aria-hidden="true">lock</span>
+                <input
+                  id="login-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="register-password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} className="register-submit">
+              <span>{loading ? "Signing you in..." : "Sign in"}</span>
+              <span className={`material-symbols-outlined ${loading ? "register-spinner" : ""}`} aria-hidden="true">
+                {loading ? "progress_activity" : "arrow_forward"}
+              </span>
+            </button>
+          </form>
+
+          <div className="login-security-note">
+            <span className="material-symbols-outlined" aria-hidden="true">lock</span>
+            <span>Your password is encrypted and never displayed.</span>
+          </div>
+
+          <div className="register-mobile-signin">
+            New to CivicPulse? <Link href="/auth/register">Create an account</Link>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

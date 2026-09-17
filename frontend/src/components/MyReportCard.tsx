@@ -29,6 +29,10 @@ export default function MyReportCard({
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
+    if (!isReported) {
+      setIsEditing(false);
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from('reports')
@@ -52,7 +56,7 @@ export default function MyReportCard({
         <div className="flex justify-between items-start gap-4">
           <div className="flex flex-col flex-grow">
             <span className={`font-label-md text-label-md mb-1 ${isResolved ? 'text-secondary' : isReported ? 'text-tertiary' : 'text-primary'}`}>{id}</span>
-            {isEditing ? (
+            {isEditing && isReported ? (
               <input 
                 type="text" 
                 value={editTitle}
@@ -60,19 +64,19 @@ export default function MyReportCard({
                 className="font-headline-md text-headline-md text-on-surface bg-surface-variant/50 border border-outline-variant rounded-md px-2 py-1 outline-none focus:border-primary w-full"
               />
             ) : (
-              <h3 className={`font-headline-md text-headline-md text-on-surface ${isResolved ? 'line-through decoration-[#334155]' : ''}`}>{isEditing ? editTitle : currentTitle}</h3>
+              <h3 className={`font-headline-md text-headline-md text-on-surface ${isResolved ? 'line-through decoration-[#334155]' : ''}`}>{currentTitle}</h3>
             )}
           </div>
           <StatusBadge status={status} />
         </div>
-        {isEditing ? (
+        {isEditing && isReported ? (
           <textarea 
             value={editDesc}
             onChange={(e) => setEditDesc(e.target.value)}
             className="font-body-md text-body-md text-on-surface bg-surface-variant/50 border border-outline-variant rounded-md px-2 py-1 outline-none focus:border-primary w-full h-24 resize-none"
           />
         ) : (
-          <p className="font-body-md text-body-md text-on-surface-variant line-clamp-2">{isEditing ? editDesc : currentDesc}</p>
+          <p className="font-body-md text-body-md text-on-surface-variant line-clamp-2">{currentDesc}</p>
         )}
         
         {/* Timeline Component Mock */}
@@ -116,7 +120,7 @@ export default function MyReportCard({
       <div className="flex flex-row md:flex-col justify-end md:justify-start items-center md:items-end gap-sm pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-[#1E293B] md:pl-lg">
         <span className="font-caption text-caption text-on-surface-variant flex-grow md:flex-grow-0 mb-auto">{date}</span>
         <div className="flex gap-2">
-          {!isResolved ? (
+          {isReported ? (
             isEditing ? (
               <div className="flex gap-2">
                 <button onClick={() => setIsEditing(false)} className="bg-transparent border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">

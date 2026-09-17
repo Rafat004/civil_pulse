@@ -1215,6 +1215,11 @@
   -webkit-backdrop-filter: blur(18px);
 }
 
+.login-card {
+  padding-top: clamp(38px, 4vw, 54px);
+  padding-bottom: clamp(38px, 4vw, 54px);
+}
+
 .register-card-heading {
   margin-bottom: 26px;
 }
@@ -1518,6 +1523,24 @@
   font-size: 10px;
   line-height: 1.55;
   text-align: center;
+}
+
+.login-security-note {
+  margin-top: 20px;
+  padding-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #7b8592;
+  border-top: 1px solid #e6e9ee;
+  font-size: 11px;
+}
+
+.login-security-note .material-symbols-outlined {
+  color: #4f8963;
+  font-size: 15px;
+  font-variation-settings: "FILL" 1;
 }
 
 .register-mobile-signin {

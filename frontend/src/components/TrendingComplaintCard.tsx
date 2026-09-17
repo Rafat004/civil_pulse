@@ -1,6 +1,9 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import StatusBadge, { StatusType } from './StatusBadge';
+import { useAuth } from './AuthProvider';
+import { supabase } from '@/lib/supabaseClient';
+import { getReactionSummary, setReaction } from '@/services/reactions';
 
 interface TrendingComplaintCardProps {
   id: string;
@@ -13,9 +16,6 @@ interface TrendingComplaintCardProps {
   imageUrl?: string;
   hasUpvoted?: boolean;
 }
-
-import { useAuth } from './AuthProvider';
-import { supabase } from '@/lib/supabaseClient';
 
 export default function TrendingComplaintCard({
   id,
@@ -33,23 +33,44 @@ export default function TrendingComplaintCard({
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [status, setStatus] = useState(initialStatus);
 
+  useEffect(() => {
+    let isMounted = true;
+    getReactionSummary(id, user?.id)
+      .then((summary) => {
+        if (!isMounted) return;
+        const total = summary.affected + summary.confirmed;
+        if (total > 0 || summary.currentUser.affected || summary.currentUser.confirmed) {
+          setUpvotes(total);
+          setUpvoted(summary.currentUser.affected || summary.currentUser.confirmed);
+        }
+      })
+      .catch((err) => {
+        // Silently swallow if table not created yet or empty
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [id, user?.id]);
+
   const handleUpvote = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
-      alert("You must be logged in to upvote.");
+      alert("You must be logged in to react.");
       return;
     }
     
-    // Optimistic UI
-    if (upvoted) {
-      setUpvotes(prev => prev - 1);
-      setUpvoted(false);
-    } else {
-      setUpvotes(prev => prev + 1);
-      setUpvoted(true);
-    }
+    const newActive = !upvoted;
+    setUpvoted(newActive);
+    setUpvotes(prev => newActive ? prev + 1 : Math.max(0, prev - 1));
     
-    // In a real app we'd trigger a Supabase RPC or insert into the upvotes table here
+    try {
+      await setReaction(id, user.id, 'affected', newActive);
+    } catch (err) {
+      console.error("Failed to update reaction:", err);
+      // Revert optimistic update
+      setUpvoted(!newActive);
+      setUpvotes(prev => newActive ? Math.max(0, prev - 1) : prev + 1);
+    }
   };
 
   const handleStatusChange = async (newStatus: StatusType) => {
@@ -124,3 +145,4 @@ export default function TrendingComplaintCard({
     </div>
   );
 }
+
