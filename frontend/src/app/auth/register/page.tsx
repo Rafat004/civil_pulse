@@ -1,189 +1,272 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+
+type AccountRole = "civic" | "admin";
 
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<'civic' | 'admin'>('civic');
+  const [role, setRole] = useState<AccountRole>("civic");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isOn, setIsOn] = useState(false);
-  const [tugged, setTugged] = useState(false);
   const router = useRouter();
 
-  const handlePullChain = useCallback(() => {
-    setTugged(true);
-    setTimeout(() => setTugged(false), 600);
-    setIsOn((prev) => !prev);
-  }, []);
+  const passwordIsLongEnough = password.length >= 8;
+  const passwordHasNumber = /\d/.test(password);
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
-      email,
+    if (!fullName.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (!passwordIsLongEnough) {
+      setError("Your password must be at least 8 characters long.");
+      return;
+    }
+
+    setLoading(true);
+
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: email.trim(),
       password,
       options: {
         data: {
-          role: role,
-          full_name: fullName,
-        }
-      }
+          role,
+          full_name: fullName.trim(),
+        },
+      },
     });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push("/");
+    if (signUpError) {
+      setError(signUpError.message);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    router.push("/");
   };
 
   return (
-    <div className={`lamp-scene ${isOn ? "lamp-scene--on" : "lamp-scene--off"}`}>
-      {/* Branding */}
-      <Link href="/" className="auth-brand">
-        <span className="material-symbols-outlined auth-brand-icon" style={{ fontVariationSettings: "'FILL' 1" }}>
-          assured_workload
-        </span>
-        <span className="auth-brand-name">CivicPulse</span>
-      </Link>
+    <main className="register-page">
+      <header className="register-header">
+        <Link href="/" className="register-brand" aria-label="CivicPulse home">
+          <span className="register-brand-mark" aria-hidden="true">
+            <span className="material-symbols-outlined">assured_workload</span>
+          </span>
+          <span>CivicPulse</span>
+        </Link>
 
-      {/* Title */}
-      <div className="lamp-title">Create Your Account</div>
-
-      {/* Prompt to interact */}
-      <div className="lamp-prompt">Click the pull chain to turn on the lamp</div>
-
-      {/* ── Desk Lamp ── */}
-      <div className="lamp-container">
-        {/* Light effects */}
-        <div className="lamp-light-cone"></div>
-        <div className="lamp-ambient-glow"></div>
-
-        {/* Lamp dome */}
-        <div className="lamp-dome">
-          {/* Pull chain */}
-          <div
-            className={`pull-chain ${tugged ? "pull-chain--tugged" : ""}`}
-            onClick={handlePullChain}
-            role="button"
-            aria-label="Toggle lamp"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") handlePullChain();
-            }}
-          >
-            <div className="pull-chain-string"></div>
-            <div className="pull-chain-ball"></div>
-          </div>
-
-          {/* Bulb glow */}
-          <div className="lamp-bulb-glow"></div>
+        <div className="register-header-action">
+          <span>Already have an account?</span>
+          <Link href="/auth/login">Sign in</Link>
         </div>
+      </header>
 
-        {/* Lamp stem */}
-        <div className="lamp-stem"></div>
-
-        {/* Lamp base */}
-        <div className="lamp-base"></div>
-
-        {/* Surface glow */}
-        <div className="lamp-surface-glow"></div>
-      </div>
-
-      {/* ── Glassmorphism Register Form ── */}
-      <div className="auth-glass-form">
-        <h2>Create Account</h2>
-
-        {error && <div className="auth-error">{error}</div>}
-
-        <form onSubmit={handleRegister}>
-          <div className="auth-input-group">
-            <label>Full Name</label>
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="John Doe"
-              autoComplete="name"
-            />
+      <div className="register-layout">
+        <section className="register-intro" aria-labelledby="register-intro-title">
+          <div className="register-eyebrow">
+            <span className="register-eyebrow-dot" aria-hidden="true" />
+            Your city, within reach
           </div>
 
-          <div className="auth-input-group">
-            <label>Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
-              autoComplete="email"
-            />
+          <h1 id="register-intro-title">
+            Turn local issues into <span>visible action.</span>
+          </h1>
+          <p className="register-intro-copy">
+            Join your community to report problems, support the issues that matter,
+            and follow every update through resolution.
+          </p>
+
+          <div className="register-journey" aria-label="How CivicPulse works">
+            <div className="register-journey-line" aria-hidden="true" />
+            <div className="register-journey-item">
+              <span className="register-step-number">01</span>
+              <div>
+                <strong>Report in minutes</strong>
+                <p>Add a location, a short description, and an optional photo.</p>
+              </div>
+            </div>
+            <div className="register-journey-item">
+              <span className="register-step-number">02</span>
+              <div>
+                <strong>Build community priority</strong>
+                <p>Support nearby reports so urgent issues rise to the top.</p>
+              </div>
+            </div>
+            <div className="register-journey-item">
+              <span className="register-step-number">03</span>
+              <div>
+                <strong>Track real progress</strong>
+                <p>See each report move from submitted to resolved.</p>
+              </div>
+            </div>
           </div>
 
-          <div className="auth-input-group">
-            <label>Password</label>
-            <div className="auth-password-wrapper">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                className="auth-password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
-                  {showPassword ? "visibility_off" : "visibility"}
+          <div className="register-trust-note">
+            <span className="material-symbols-outlined" aria-hidden="true">verified_user</span>
+            <span>Your account keeps reports and updates connected to you.</span>
+          </div>
+        </section>
+
+        <section className="register-card" aria-labelledby="register-form-title">
+          <div className="register-card-heading">
+            <span className="register-card-kicker">Get started</span>
+            <h2 id="register-form-title">Create your account</h2>
+            <p>Enter your details below. It only takes a minute.</p>
+          </div>
+
+          {error && (
+            <div className="register-error" role="alert">
+              <span className="material-symbols-outlined" aria-hidden="true">error</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form className="register-form" onSubmit={handleRegister}>
+            <div className="register-field">
+              <label htmlFor="full-name">Full name</label>
+              <div className="register-input-wrap">
+                <span className="material-symbols-outlined" aria-hidden="true">person</span>
+                <input
+                  id="full-name"
+                  name="name"
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  placeholder="e.g. Amina Rahman"
+                  autoComplete="name"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="register-field">
+              <label htmlFor="email">Email address</label>
+              <div className="register-input-wrap">
+                <span className="material-symbols-outlined" aria-hidden="true">mail</span>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  inputMode="email"
+                />
+              </div>
+            </div>
+
+            <fieldset className="register-role-group">
+              <legend>How will you use CivicPulse?</legend>
+              <div className="register-role-options">
+                <button
+                  type="button"
+                  className={`register-role-option ${role === "civic" ? "is-selected" : ""}`}
+                  onClick={() => setRole("civic")}
+                  aria-pressed={role === "civic"}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">home_pin</span>
+                  <span>
+                    <strong>Resident</strong>
+                    <small>Report and follow issues</small>
+                  </span>
+                  <span className="register-role-check material-symbols-outlined" aria-hidden="true">
+                    check_circle
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`register-role-option ${role === "admin" ? "is-selected" : ""}`}
+                  onClick={() => setRole("admin")}
+                  aria-pressed={role === "admin"}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
+                  <span>
+                    <strong>Administrator</strong>
+                    <small>Review and manage reports</small>
+                  </span>
+                  <span className="register-role-check material-symbols-outlined" aria-hidden="true">
+                    check_circle
+                  </span>
+                </button>
+              </div>
+              {role === "admin" && (
+                <p className="register-role-note">
+                  Administrator registration is enabled for this demonstration.
+                </p>
+              )}
+            </fieldset>
+
+            <div className="register-field">
+              <label htmlFor="password">Password</label>
+              <div className="register-input-wrap">
+                <span className="material-symbols-outlined" aria-hidden="true">lock</span>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Create a secure password"
+                  autoComplete="new-password"
+                  aria-describedby="password-guidance"
+                />
+                <button
+                  type="button"
+                  className="register-password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
+              <div id="password-guidance" className="register-password-guidance">
+                <span className={passwordIsLongEnough ? "is-valid" : ""}>
+                  <span className="material-symbols-outlined" aria-hidden="true">check</span>
+                  8+ characters
                 </span>
-              </button>
+                <span className={passwordHasNumber ? "is-valid" : ""}>
+                  <span className="material-symbols-outlined" aria-hidden="true">check</span>
+                  Include a number
+                </span>
+              </div>
             </div>
+
+            <button type="submit" disabled={loading} className="register-submit">
+              <span>{loading ? "Creating your account..." : "Create account"}</span>
+              <span className={`material-symbols-outlined ${loading ? "register-spinner" : ""}`} aria-hidden="true">
+                {loading ? "progress_activity" : "arrow_forward"}
+              </span>
+            </button>
+          </form>
+
+          <p className="register-legal">
+            By creating an account, you agree to use CivicPulse responsibly and
+            provide accurate community reports.
+          </p>
+
+          <div className="register-mobile-signin">
+            Already have an account? <Link href="/auth/login">Sign in</Link>
           </div>
-
-          <div className="auth-input-group">
-            <label>Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as 'civic' | 'admin')}
-            >
-              <option value="civic">Civic (Citizen)</option>
-              <option value="admin">Administration (Admin)</option>
-            </select>
-            <div className="auth-helper">
-              Demo purposes: You can freely choose to be an Admin
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="auth-gold-btn"
-          >
-            {loading ? "Creating account..." : "Sign Up"}
-          </button>
-        </form>
-
-        <div className="auth-switch-link">
-          Already have an account?{" "}
-          <Link href="/auth/login">Sign In</Link>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
