@@ -19,6 +19,7 @@ import { getReactionSummary, setReaction } from "@/services/reactions";
 import { createComment, deleteComment, getComments } from "@/services/comments";
 import { followReport, getFollowerCount, isFollowingReport, unfollowReport } from "@/services/following";
 import { validateReportImage } from "@/lib/images";
+import SmartSuggestion from "@/components/SmartSuggestion";
 import type { Comment, Department, Report, ReportStatus, ReportStatusHistory } from "@/lib/types";
 
 const MapComponent = dynamic(() => import("@/components/MapComponent"), { ssr: false });
@@ -673,7 +674,7 @@ export default function IssueDetailPage() {
           {/* Right Column: Reactions, Timeline, Admin Actions */}
           <div className="lg:col-span-4 flex flex-col gap-lg">
             {/* Civic Reactions Widget */}
-            <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md flex flex-col gap-md shadow-md">
+            <div id="community-actions" className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md flex flex-col gap-md shadow-md scroll-mt-6">
               <h3 className="font-label-md text-label-md font-bold text-on-surface uppercase tracking-wider">
                 Community Confirmation
               </h3>
@@ -797,7 +798,14 @@ export default function IssueDetailPage() {
                           {dep.name}
                         </option>
                       ))}
-                    </select>
+                      </select>
+                    <SmartSuggestion
+                      title={issue.title}
+                      description={issue.description}
+                      category={issue.category}
+                      departmentIds={departments.map((department) => department.id)}
+                      onApply={setAdminDepartmentId}
+                    />
                   </div>
 
                   <div className="flex flex-col gap-xs">

@@ -64,7 +64,7 @@ Current roadmap:
 [x] Phase 3 — Following & Notifications
 [x] Phase 4 — Admin Operations
 [x] Phase 5 — Map & Discovery
-[ ] Phase 6 — Smart Features
+[x] Phase 6 — Smart Features
 [ ] Phase 7 — Polish & Demo Readiness
 ```
 
@@ -749,7 +749,7 @@ Phase 5 is complete when:
 
 # 11. Phase 6 — Smart Features
 
-**Status:** `[ ]`
+**Status:** `[x]`
 
 ## Goal
 

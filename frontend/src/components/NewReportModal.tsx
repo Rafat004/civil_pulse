@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from './AuthProvider';
-import { intelligenceApiUrl } from '@/lib/config';
 import { validateReportImage } from '@/lib/images';
 import { REPORT_CATEGORIES } from '@/lib/constants';
+import SmartSuggestion from './SmartSuggestion';
+import { findDuplicates, type DuplicateCandidate } from '@/services/intelligence';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
 
@@ -38,6 +40,7 @@ function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, 
 
 export default function NewReportModal({ onClose }: NewReportModalProps) {
   const { user } = useAuth();
+  const router = useRouter();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -47,6 +50,10 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [intelligenceNotice, setIntelligenceNotice] = useState<string | null>(null);
+  const [duplicateCandidates, setDuplicateCandidates] = useState<DuplicateCandidate[]>([]);
+  const [reviewedDraftKey, setReviewedDraftKey] = useState<string | null>(null);
+  const duplicateRequest = useRef<AbortController | null>(null);
 
   // Existing reports for nearby discovery
   const [existingReports, setExistingReports] = useState<ExistingReportItem[]>([]);
@@ -79,6 +86,20 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
       .slice(0, 4);
   }, [location, existingReports]);
 
+  const draftKey = useMemo(
+    () => JSON.stringify([title.trim(), description.trim(), category, location?.lat ?? null, location?.lng ?? null]),
+    [title, description, category, location],
+  );
+
+  useEffect(() => {
+    duplicateRequest.current?.abort();
+    setDuplicateCandidates([]);
+    setReviewedDraftKey(null);
+    setIntelligenceNotice(null);
+  }, [draftKey]);
+
+  useEffect(() => () => duplicateRequest.current?.abort(), []);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file) {
@@ -94,6 +115,50 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
     setImageFile(file);
   };
 
+  const persistReport = async () => {
+    if (!user || !location) return;
+    // Validate & upload image only after duplicate review, so a cancelled draft never leaves an orphaned upload.
+    let image_url = null;
+    if (imageFile) {
+      const validationError = validateReportImage(imageFile);
+      if (validationError) throw new Error(validationError);
+
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('reports').upload(fileName, imageFile);
+      if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`);
+
+      const { data: publicUrlData } = supabase.storage.from('reports').getPublicUrl(fileName);
+      image_url = publicUrlData.publicUrl;
+    }
+
+    const { error: dbError } = await supabase.from('reports').insert([{
+      title: title.trim(),
+      description: description.trim(),
+      category,
+      zone,
+      lat: location.lat,
+      lng: location.lng,
+      user_id: user.id,
+      image_url,
+      status: 'Reported',
+    }]);
+    if (dbError) throw dbError;
+    onClose();
+  };
+
+  const submitAfterReview = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await persistReport();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during submission.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -106,68 +171,37 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
     }
     setLoading(true);
     setError(null);
-
+    setIntelligenceNotice(null);
     try {
-      // 1. Check for duplicates using Intelligence API (Advisory check)
-      try {
-        const dupCheckRes = await fetch(intelligenceApiUrl('/cluster-duplicates'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat: location.lat, lng: location.lng, title })
-        });
-        if (dupCheckRes.ok) {
-          const dupCheckData = await dupCheckRes.json();
-          if (dupCheckData.is_duplicate) {
-            if (!confirm(`Warning: ${dupCheckData.message}\n\nDo you still want to submit this?`)) {
-              setLoading(false);
-              return;
-            }
+      if (reviewedDraftKey !== draftKey) {
+        duplicateRequest.current?.abort();
+        const controller = new AbortController();
+        duplicateRequest.current = controller;
+        try {
+          const candidates = await findDuplicates({
+            title: title.trim(),
+            description: description.trim(),
+            category,
+            lat: location.lat,
+            lng: location.lng,
+          }, controller.signal);
+          if (controller.signal.aborted) return;
+          setReviewedDraftKey(draftKey);
+          if (candidates.length > 0) {
+            setDuplicateCandidates(candidates);
+            setLoading(false);
+            return;
           }
+        } catch (duplicateError) {
+          if (controller.signal.aborted) return;
+          console.warn('Duplicate detection unavailable; continuing with submission.', duplicateError);
+          setIntelligenceNotice('Smart duplicate suggestions are unavailable right now. You can still submit this report.');
+          setReviewedDraftKey(draftKey);
+        } finally {
+          if (duplicateRequest.current === controller) duplicateRequest.current = null;
         }
-      } catch (dupErr) {
-        console.warn('Duplicate detection service unavailable, continuing with submission:', dupErr);
       }
-
-      // 2. Validate & Upload Image (if provided)
-      let image_url = null;
-      if (imageFile) {
-        const validationError = validateReportImage(imageFile);
-        if (validationError) {
-          setError(validationError);
-          setLoading(false);
-          return;
-        }
-
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('reports')
-          .upload(fileName, imageFile);
-
-        if (uploadError) {
-          throw new Error(`Image upload failed: ${uploadError.message}`);
-        }
-
-        const { data: publicUrlData } = supabase.storage.from('reports').getPublicUrl(fileName);
-        image_url = publicUrlData.publicUrl;
-      }
-
-      // 3. Insert into Supabase (enforcing user_id = auth.uid())
-      const { error: dbError } = await supabase.from('reports').insert([{
-        title,
-        description,
-        category,
-        zone,
-        lat: location.lat,
-        lng: location.lng,
-        user_id: user.id,
-        image_url,
-        status: 'Reported',
-      }]);
-
-      if (dbError) throw dbError;
-
-      onClose(); // Successfully submitted
+      await persistReport();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during submission.');
     } finally {
@@ -217,6 +251,11 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
                   </option>
                 ))}
               </select>
+              <SmartSuggestion
+                title={title}
+                description={description}
+                onApply={setCategory}
+              />
             </div>
           </div>
 
@@ -294,6 +333,56 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {intelligenceNotice && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
+              {intelligenceNotice}
+            </div>
+          )}
+
+          {duplicateCandidates.length > 0 && (
+            <div className="bg-primary/5 p-4 rounded-xl border border-primary/30 space-y-3" aria-live="polite">
+              <div>
+                <h3 className="font-semibold text-on-surface">This may already be reported</h3>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Review these nearby, similar issues before creating a new report. Your choice is always final.
+                </p>
+              </div>
+              <div className="space-y-2">
+                {duplicateCandidates.map((candidate) => (
+                  <div key={candidate.id} className="bg-surface p-3 rounded-lg border border-outline-variant flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <Link href={`/issues/${candidate.id}`} target="_blank" className="font-semibold text-sm text-primary hover:underline">
+                        {candidate.title}
+                      </Link>
+                      <p className="text-xs text-on-surface-variant">
+                        {candidate.category} · {candidate.status} · {candidate.distanceMeters} m away · {Math.round(candidate.similarity * 100)}% match
+                      </p>
+                      <p className="text-[11px] text-on-surface-variant">{candidate.reasons.join(' · ')}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { router.push(`/issues/${candidate.id}#community-actions`); onClose(); }}
+                      className="shrink-0 px-3 py-2 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90"
+                    >
+                      Same issue
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1">
+                <p className="text-xs text-on-surface-variant">None of these match?</p>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => { setDuplicateCandidates([]); setReviewedDraftKey(draftKey); void submitAfterReview(); }}
+                  className="px-3 py-2 rounded-lg border border-primary text-primary text-xs font-semibold hover:bg-primary/10 disabled:opacity-50"
+                >
+                  Different issue — submit new report
+                </button>
               </div>
             </div>
           )}

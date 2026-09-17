@@ -55,41 +55,4 @@ public class IntelligenceController {
         }
     }
 
-    @PostMapping("/cluster-duplicates")
-    public ResponseEntity<String> clusterDuplicates(@RequestBody Map<String, Object> newReport) {
-        try {
-            double newLat = Double.parseDouble(newReport.get("lat").toString());
-            double newLng = Double.parseDouble(newReport.get("lng").toString());
-            String newTitle = newReport.get("title").toString().toLowerCase();
-
-            String reportsJson = supabaseClientService.getReports();
-            List<Map<String, Object>> existingReports = objectMapper.readValue(reportsJson, new TypeReference<List<Map<String, Object>>>() {});
-
-            for (Map<String, Object> existing : existingReports) {
-                double exLat = Double.parseDouble(existing.get("lat").toString());
-                double exLng = Double.parseDouble(existing.get("lng").toString());
-                String exTitle = existing.get("title").toString().toLowerCase();
-
-                // Simple Distance Check (approximate Haversine for small distances)
-                double dLat = Math.toRadians(exLat - newLat);
-                double dLng = Math.toRadians(exLng - newLng);
-                double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                           Math.cos(Math.toRadians(newLat)) * Math.cos(Math.toRadians(exLat)) *
-                           Math.sin(dLng / 2) * Math.sin(dLng / 2);
-                double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                double distance = 6371000 * c; // Distance in meters
-
-                if (distance < 500) { // within 500 meters
-                    if (newTitle.contains(exTitle) || exTitle.contains(newTitle) || distance < 50) {
-                        return ResponseEntity.ok("{\"status\": \"success\", \"is_duplicate\": true, \"message\": \"Potential duplicate found: '" + existing.get("title") + "'\"}");
-                    }
-                }
-            }
-
-            return ResponseEntity.ok("{\"status\": \"success\", \"is_duplicate\": false, \"message\": \"No duplicates found.\"}");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Internal Server Error\"}");
-        }
-    }
 }
