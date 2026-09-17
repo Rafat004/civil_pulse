@@ -1,22 +1,66 @@
 -- Phase 0 Stabilization Migration
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 0. Profiles Table
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL DEFAULT 'civic',
+    full_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
+CREATE POLICY "Users can read own profile"
+    ON public.profiles FOR SELECT
+    USING (auth.uid() = id);
+
 -- 1. Secure Signup (Always default role to 'civic', ignore user metadata role)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, role)
+  INSERT INTO public.profiles (id, role, full_name)
   VALUES (
     new.id,
-    'civic'
-  );
+    'civic',
+    new.raw_user_meta_data->>'full_name'
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET full_name = EXCLUDED.full_name,
+      role = 'civic';
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trusted SQL method to promote demo admin account:
--- UPDATE public.profiles SET role = 'admin' WHERE id = '<user_uuid>';
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- 2. Report RLS Policies
+-- 2. Reports Table & RLS Policies
+CREATE TABLE IF NOT EXISTS public.reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    category TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Reported',
+    zone TEXT NOT NULL,
+    lat DOUBLE PRECISION NOT NULL,
+    lng DOUBLE PRECISION NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    upvotes_count INTEGER NOT NULL DEFAULT 0,
+    image_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access to reports" ON public.reports;
+CREATE POLICY "Allow public read access to reports"
+    ON public.reports FOR SELECT
+    USING (true);
 
 -- Allow authenticated users to insert reports (enforcing user_id = auth.uid())
 DROP POLICY IF EXISTS "Allow authenticated inserts on reports" ON public.reports;
@@ -44,7 +88,7 @@ CREATE POLICY "Allow admins to update reports"
 
 -- 3. Persistent Civic Reactions (report_reactions)
 CREATE TABLE IF NOT EXISTS public.report_reactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('affected', 'confirmed')),

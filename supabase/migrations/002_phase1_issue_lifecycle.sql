@@ -2,7 +2,7 @@
 
 -- 1. Departments Table
 CREATE TABLE IF NOT EXISTS public.departments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -109,7 +109,7 @@ CREATE TRIGGER check_status_transition
 
 -- 4. Report Status History Table
 CREATE TABLE IF NOT EXISTS public.report_status_history (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     from_status TEXT,
     to_status TEXT NOT NULL,

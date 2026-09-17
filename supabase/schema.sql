@@ -62,7 +62,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- 1. Create Departments Table
 CREATE TABLE IF NOT EXISTS public.departments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -98,7 +98,7 @@ ON CONFLICT (name) DO NOTHING;
 
 -- 2. Create the Reports Table
 CREATE TABLE IF NOT EXISTS public.reports (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     category TEXT NOT NULL,
@@ -183,7 +183,7 @@ CREATE TRIGGER check_status_transition
 
 -- 4. Create the Report Reactions Table
 CREATE TABLE IF NOT EXISTS public.report_reactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('affected', 'confirmed')),
@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS public.report_reactions (
 
 -- 5. Create Report Status History Table
 CREATE TABLE IF NOT EXISTS public.report_status_history (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     from_status TEXT,
     to_status TEXT NOT NULL,
@@ -381,7 +381,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 8. Create Comments Table (Phase 2)
 CREATE TABLE IF NOT EXISTS public.comments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     body TEXT NOT NULL,
@@ -429,7 +429,7 @@ CREATE POLICY "Allow users or admins to delete comments"
 
 -- 10. Report Followers Table (Phase 3)
 CREATE TABLE IF NOT EXISTS public.report_followers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -470,7 +470,7 @@ GRANT EXECUTE ON FUNCTION public.get_follower_count(UUID) TO anon, authenticated
 
 -- 11. Notifications Table (Phase 3)
 CREATE TABLE IF NOT EXISTS public.notifications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('STATUS_CHANGED', 'NEW_COMMENT', 'OFFICIAL_UPDATE', 'REPORT_RESOLVED', 'REPORT_REOPENED')),

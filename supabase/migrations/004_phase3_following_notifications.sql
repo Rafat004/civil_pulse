@@ -2,7 +2,7 @@
 
 -- 1. Report Followers Table
 CREATE TABLE IF NOT EXISTS public.report_followers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -46,7 +46,7 @@ GRANT EXECUTE ON FUNCTION public.get_follower_count(UUID) TO anon, authenticated
 
 -- 2. Notifications Table
 CREATE TABLE IF NOT EXISTS public.notifications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     report_id UUID NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('STATUS_CHANGED', 'NEW_COMMENT', 'OFFICIAL_UPDATE', 'REPORT_RESOLVED', 'REPORT_REOPENED')),
