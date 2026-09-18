@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowRight, Bell, Check, CheckCheck, CircleAlert, MessageCircle, RefreshCw, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
@@ -11,6 +12,7 @@ import {
   markNotificationAsRead,
 } from "@/services/notifications";
 import type { Notification, NotificationType } from "@/lib/types";
+import { Button, EmptyState, InlineError, LoadingSkeleton, PageHeader } from "@/components/ui";
 
 export default function NotificationsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -98,26 +100,22 @@ export default function NotificationsPage() {
   const getIconForType = (type: NotificationType) => {
     switch (type) {
       case "REPORT_RESOLVED":
-        return { icon: "task_alt", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" };
+        return { icon: <CheckCheck size={19} />, color: "text-[#39704a] bg-[#e8f4eb] border-[#b9ddc1]" };
       case "REPORT_REOPENED":
-        return { icon: "restart_alt", color: "text-orange-500 bg-orange-500/10 border-orange-500/20" };
+        return { icon: <RefreshCw size={19} />, color: "text-[#8c5a13] bg-[#fff3df] border-[#f2d09a]" };
       case "OFFICIAL_UPDATE":
-        return { icon: "verified", color: "text-purple-500 bg-purple-500/10 border-purple-500/20" };
+        return { icon: <ShieldCheck size={19} />, color: "text-[#684d89] bg-[#f0ebf8] border-[#d7c9e7]" };
       case "NEW_COMMENT":
-        return { icon: "chat", color: "text-amber-500 bg-amber-500/10 border-amber-500/20" };
+        return { icon: <MessageCircle size={19} />, color: "text-[#8c5a13] bg-[#fff3df] border-[#f2d09a]" };
       case "STATUS_CHANGED":
       default:
-        return { icon: "sync_alt", color: "text-primary bg-primary/10 border-primary/20" };
+        return { icon: <CircleAlert size={19} />, color: "text-[#2c5e86] bg-[#e9f2fb] border-[#bdd6ec]" };
     }
   };
 
   if (authLoading || loading) {
     return (
-      <main className="min-h-screen bg-background p-md md:p-xl flex items-center justify-center">
-        <div className="flex items-center gap-3 text-on-surface-variant">
-          <span className="material-symbols-outlined animate-spin text-2xl">sync</span>
-          <span className="font-label-md">Loading notifications...</span>
-        </div>
+      <main className="civic-page"><div className="civic-container py-12"><LoadingSkeleton className="h-24" /><div className="mt-6 grid gap-3"><LoadingSkeleton className="h-24" /><LoadingSkeleton className="h-24" /><LoadingSkeleton className="h-24" /></div></div>
       </main>
     );
   }
@@ -127,52 +125,22 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
   return (
-    <main className="min-h-screen bg-background p-margin-mobile md:p-margin-desktop py-lg">
-      <div className="max-w-[900px] mx-auto flex flex-col gap-lg">
-        {/* Page Header */}
-        <div className="flex flex-wrap items-center justify-between gap-md border-b border-outline-variant pb-md">
-          <div>
-            <h1 className="text-headline-lg font-headline-lg text-on-surface font-extrabold flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">notifications</span>
-              Notifications
-            </h1>
-            <p className="text-body-md text-on-surface-variant mt-1">
-              Updates on reports you follow and reported issues.
-            </p>
-          </div>
-
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllAsRead}
-              className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-on-primary font-label-md text-xs font-semibold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[16px]">done_all</span>
-              Mark all as read ({unreadCount})
-            </button>
-          )}
-        </div>
+    <main className="civic-page pb-12"><div className="civic-container py-10 md:py-14">
+        <PageHeader eyebrow="Stay in the loop" title="Notifications" description="Updates on reports you follow and activity that moves civic issues forward." actions={unreadCount > 0 ? <Button variant="secondary" size="sm" onClick={handleMarkAllAsRead}><CheckCheck size={15} />Mark all read ({unreadCount})</Button> : undefined} />
 
         {actionError && (
-          <div role="alert" className="bg-error/10 border border-error/20 p-sm rounded-xl text-error text-sm">
-            {actionError}
-          </div>
+          <InlineError>{actionError}</InlineError>
         )}
 
         {/* Notifications List */}
         {error ? (
-          <div className="bg-error/10 border border-error/20 p-md rounded-2xl text-error text-center font-body-md">
+          <InlineError>
             {error}
-          </div>
+          </InlineError>
         ) : notifications.length === 0 ? (
-          <div className="glass-card bg-surface/40 border border-outline-variant/60 rounded-2xl p-xl text-center flex flex-col items-center gap-sm">
-            <span className="material-symbols-outlined text-4xl text-on-surface-variant">notifications_off</span>
-            <h3 className="font-headline-md text-on-surface font-bold">No notifications yet</h3>
-            <p className="text-on-surface-variant text-sm max-w-md">
-              You will receive updates when there are status changes or new activity on issues you follow.
-            </p>
-          </div>
+          <EmptyState icon={<Bell size={34} />} title="No notifications yet" description="You will receive updates when there are status changes or new activity on issues you follow." />
         ) : (
-          <div className="flex flex-col gap-sm">
+          <div className="flex flex-col gap-3">
             {notifications.map((notification) => {
               const isUnread = !notification.read_at;
               const { icon, color } = getIconForType(notification.type);
@@ -180,20 +148,28 @@ export default function NotificationsPage() {
               return (
                 <div
                   key={notification.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     if (isUnread) handleMarkAsRead(notification.id);
                     router.push(`/issues/${notification.report_id}`);
                   }}
-                  className={`glass-card p-md rounded-2xl border transition-all cursor-pointer flex items-start gap-md hover:border-primary/40 ${
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      if (isUnread) handleMarkAsRead(notification.id);
+                      router.push(`/issues/${notification.report_id}`);
+                    }
+                  }}
+                  className={`civic-focus civic-surface flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition-shadow hover:shadow-[0_10px_26px_rgba(23,37,53,0.08)] ${
                     isUnread
                       ? "bg-surface border-primary/30 shadow-sm"
                       : "bg-surface/40 border-outline-variant/40 opacity-80"
                   }`}
                 >
                   {/* Type Icon */}
-                  <div className={`p-2.5 rounded-xl border flex-shrink-0 ${color}`}>
-                    <span className="material-symbols-outlined text-xl">{icon}</span>
-                  </div>
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${color}`}>{icon}</div>
 
                   {/* Content */}
                   <div className="flex-grow flex flex-col gap-xs">
@@ -202,9 +178,7 @@ export default function NotificationsPage() {
                         <h3 className="font-label-md text-sm font-bold text-on-surface">
                           {notification.title}
                         </h3>
-                        {isUnread && (
-                          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        )}
+                        {isUnread && <span className="h-2 w-2 rounded-full bg-[#b87924]" aria-label="Unread" />}
                       </div>
                       <span className="text-[11px] text-on-surface-variant">
                         {new Date(notification.created_at).toLocaleDateString()}{" "}
@@ -226,7 +200,7 @@ export default function NotificationsPage() {
                         className="text-xs text-primary hover:underline font-semibold flex items-center gap-1"
                       >
                         View Issue Details
-                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                        <ArrowRight size={14} />
                       </Link>
 
                       {isUnread && (
@@ -234,7 +208,7 @@ export default function NotificationsPage() {
                           onClick={(e) => handleMarkAsRead(notification.id, e)}
                           className="text-[11px] text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1"
                         >
-                          <span className="material-symbols-outlined text-[14px]">check</span>
+                          <Check size={14} />
                           Mark read
                         </button>
                       )}

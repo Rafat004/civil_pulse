@@ -1,132 +1,54 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import MyReportCard from '@/components/MyReportCard';
-import { StatusType } from '@/components/StatusBadge';
-import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/components/AuthProvider';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from "react";
+import { ClipboardList, Filter, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import MyReportCard from "@/components/MyReportCard";
+import { Button, EmptyState, InlineError, LoadingSkeleton, MetricCard, PageHeader } from "@/components/ui";
+import { StatusType } from "@/components/StatusBadge";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/components/AuthProvider";
+import { REPORT_STATUSES } from "@/lib/constants";
 
-interface Report {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  created_at: string;
-}
+interface Report { id: string; title: string; description: string; status: string; created_at: string; updated_at?: string; }
 
 export default function MyReports() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("All");
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth/login');
-      return;
-    }
-
-    if (user) {
-      const fetchReports = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('reports')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-
-          if (error) {
-            console.error("Error fetching reports:", error);
-            return;
-          }
-          setReports(data || []);
-        } catch (err) {
-          console.error("Failed to fetch reports:", err);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchReports();
-    }
+    if (!authLoading && !user) { router.push("/auth/login"); return; }
+    if (!user) return;
+    const fetchReports = async () => {
+      setLoading(true);
+      const { data, error: fetchError } = await supabase.from("reports").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (fetchError) setError(fetchError.message); else { setReports(data || []); setError(null); }
+      setLoading(false);
+    };
+    void fetchReports();
   }, [user, authLoading, router]);
 
-  const totalReports = reports.length;
-  const resolvedReports = reports.filter(r => r.status === 'Resolved').length;
-  const underReviewReports = reports.filter(r => r.status !== 'Resolved').length;
+  const filteredReports = useMemo(() => statusFilter === "All" ? reports : reports.filter((report) => report.status === statusFilter), [reports, statusFilter]);
+  const resolved = reports.filter((report) => report.status === "Resolved").length;
+  const active = reports.length - resolved;
+
+  if (authLoading || loading) return <main className="civic-page"><div className="civic-container py-12"><LoadingSkeleton className="h-24" /><div className="mt-6 grid gap-4 md:grid-cols-3"><LoadingSkeleton className="h-28" /><LoadingSkeleton className="h-28" /><LoadingSkeleton className="h-28" /></div><div className="mt-6 grid gap-4"><LoadingSkeleton className="h-48" /><LoadingSkeleton className="h-48" /></div></div></main>;
+  if (!user) return null;
 
   return (
-    <main className="flex-grow relative w-full max-w-[1440px] mx-auto px-margin-mobile md:px-margin-desktop py-xl md:py-3xl flex flex-col gap-2xl">
-      {/* Animated Background Gradients */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] animate-pulse-slow"></div>
-        <div className="absolute bottom-[-10%] right-[10%] w-[50%] h-[40%] rounded-full bg-secondary/15 blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+    <main className="civic-page pb-12">
+      <div className="civic-container py-10 md:py-14">
+        <PageHeader eyebrow="Your civic record" title="My reports" description="Keep track of the issues you have raised and the progress they make through the civic workflow." actions={<Button onClick={() => window.dispatchEvent(new Event("open-new-report"))}><Plus size={17} />Report an issue</Button>} />
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3"><MetricCard label="Total reports" value={reports.length} detail="Your community contributions" icon={<ClipboardList size={18} />} /><MetricCard label="Active" value={active} detail="Still moving through review" tone="amber" /><MetricCard label="Resolved" value={resolved} detail="Closed with a recorded outcome" tone="green" /></div>
+        <section className="mt-12">
+          <div className="flex flex-col gap-4 border-b border-[#d8d6cf] pb-5 md:flex-row md:items-end md:justify-between"><div><p className="civic-kicker">Activity</p><h2 className="mt-1 font-headline-md text-headline-md font-bold tracking-[-0.04em] text-on-surface">Your issue history</h2></div><label className="flex items-center gap-2 text-xs font-extrabold text-on-surface-variant"><Filter size={15} /><span className="sr-only">Filter reports by status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="civic-focus h-10 rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs font-bold text-primary"><option value="All">All statuses</option>{REPORT_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label></div>
+          {error ? <div className="mt-6"><InlineError>{error}</InlineError></div> : filteredReports.length === 0 ? <div className="mt-6"><EmptyState icon={<ClipboardList size={34} />} title={reports.length ? "No reports in this status" : "Your civic record starts here"} description={reports.length ? "Choose another status to see more of your reports." : "Report a local issue and follow it from the first submission to its resolution."} action={!reports.length ? <Button onClick={() => window.dispatchEvent(new Event("open-new-report"))}><Plus size={17} />Create your first report</Button> : undefined} /></div> : <div className="mt-6 grid gap-4">{filteredReports.map((report) => <MyReportCard key={report.id} id={report.id} title={report.title} description={report.description} status={report.status as StatusType} date={new Date(report.updated_at || report.created_at).toLocaleDateString()} />)}</div>}
+        </section>
       </div>
-
-      {/* Header & Stats Area */}
-      <section className="flex flex-col gap-lg relative z-10 animate-slide-up delay-100">
-        <div>
-          <h1 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background">My Reported Issues</h1>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-xs">Track the progress and status of your civic contributions.</p>
-        </div>
-
-        {/* Stats Bento */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
-          <div className="glass-card backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-3xl p-lg flex flex-col gap-xs relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl animate-slide-up delay-200">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors"></div>
-            <span className="font-label-md text-label-md text-on-surface-variant">Total Reports</span>
-            <div className="flex items-baseline gap-sm">
-              <span className="font-display-lg text-display-lg text-on-surface">{totalReports}</span>
-            </div>
-          </div>
-
-          <div className="glass-card backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-3xl p-lg flex flex-col gap-xs relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl animate-slide-up delay-300">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-secondary/5 rounded-full blur-2xl group-hover:bg-secondary/10 transition-colors"></div>
-            <span className="font-label-md text-label-md text-on-surface-variant">Resolved</span>
-            <div className="flex items-baseline gap-sm">
-              <span className="font-display-lg text-display-lg text-secondary">{resolvedReports}</span>
-              <span className="material-symbols-outlined text-secondary text-sm icon-fill">check_circle</span>
-            </div>
-          </div>
-
-          <div className="glass-card backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-3xl p-lg flex flex-col gap-xs relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl animate-slide-up delay-400">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors"></div>
-            <span className="font-label-md text-label-md text-on-surface-variant">Under Review</span>
-            <div className="flex items-baseline gap-sm">
-              <span className="font-display-lg text-display-lg text-tertiary">{underReviewReports}</span>
-              <span className="material-symbols-outlined text-tertiary text-sm icon-fill">pending</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Reports List */}
-      <section className="flex flex-col gap-md pb-xl relative z-10 animate-slide-up delay-500">
-        <div className="flex justify-between items-center border-b border-[#1E293B] pb-sm">
-          <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Recent Activity</span>
-          <button className="flex items-center gap-xs text-on-surface-variant hover:text-primary text-sm transition-colors">
-            <span className="material-symbols-outlined">filter_list</span>
-            Filter
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="text-on-surface-variant p-4 font-body-md animate-pulse">Loading live reports...</div>
-        ) : reports.length === 0 ? (
-          <div className="text-on-surface-variant p-4 font-body-md">No reports found. Submit your first issue!</div>
-        ) : (
-          reports.map((report) => (
-            <MyReportCard 
-              key={report.id}
-              id={report.id}
-              title={report.title}
-              description={report.description}
-              status={report.status as StatusType}
-              date={new Date(report.created_at).toLocaleDateString()}
-            />
-          ))
-        )}
-      </section>
     </main>
   );
 }

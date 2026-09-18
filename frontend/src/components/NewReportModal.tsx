@@ -2,12 +2,14 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { AlertCircle, Check, ChevronRight, FileImage, MapPin, Send, Sparkles, X } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from './AuthProvider';
 import { validateReportImage } from '@/lib/images';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import SmartSuggestion from './SmartSuggestion';
 import { findDuplicates, type DuplicateCandidate } from '@/services/intelligence';
+import { Button, InlineError, Surface } from '@/components/ui';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
 
@@ -209,41 +211,62 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
     }
   };
 
+  const reportSteps: Array<[string, string, boolean]> = [
+    ['1', 'Summary', Boolean(title.trim() && description.trim())],
+    ['2', 'Category', Boolean(category)],
+    ['3', 'Location', Boolean(location)],
+    ['4', 'Review', Boolean(imageFile || duplicateCandidates.length || reviewedDraftKey)],
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4" role="presentation">
-      <div role="dialog" aria-modal="true" aria-labelledby="new-report-title" className="bg-surface-container rounded-2xl w-[90%] max-w-[800px] max-h-[90vh] overflow-y-auto border border-outline-variant shadow-2xl flex flex-col">
-        <div className="p-md border-b border-outline-variant flex justify-between items-center sticky top-0 bg-surface-container z-10">
-          <h2 id="new-report-title" className="text-headline-md font-headline-md text-on-surface">Report a Civic Issue</h2>
-          <button type="button" onClick={onClose} aria-label="Close report form" className="text-on-surface-variant hover:text-on-surface transition-colors">
-            <span className="material-symbols-outlined">close</span>
+    <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-[#172535]/40 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="new-report-title" className="max-h-[94vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-[#d8d6cf] bg-[#fffefa] shadow-[0_24px_80px_rgba(23,37,53,0.22)] sm:rounded-2xl">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#d8d6cf] bg-[#fffefa]/95 px-5 py-4 backdrop-blur md:px-7">
+          <div>
+            <p className="civic-kicker mb-1">Community report</p>
+            <h2 id="new-report-title" className="font-headline-md text-headline-md font-bold tracking-[-0.03em] text-on-surface">Report a civic issue</h2>
+            <p className="mt-1 text-xs text-on-surface-variant">Share enough context for your neighbours and city teams to act.</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close report form" className="civic-focus inline-flex h-10 w-10 items-center justify-center rounded-xl text-on-surface-variant transition-colors hover:bg-[#ece9e1] hover:text-primary">
+            <X size={19} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-md flex flex-col gap-lg">
-          {error && (
-            <div role="alert" className="bg-error/10 text-error p-sm rounded-lg border border-error/20 font-body-md text-sm">
-              {error}
+        <div className="grid grid-cols-4 gap-2 px-5 pt-5 md:px-7">
+          {reportSteps.map(([number, label, complete], index) => (
+            <div key={number} className="flex min-w-0 items-center gap-2">
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${complete ? 'bg-[#e8f4eb] text-[#39704a]' : 'bg-[#eeece6] text-on-surface-variant'}`}>{complete ? <Check size={14} /> : number}</span>
+              <span className="hidden truncate text-xs font-bold text-on-surface-variant sm:block">{label}</span>
+              {index < 3 && <ChevronRight className="ml-auto text-[#c4c1b8]" size={14} />}
             </div>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-5 md:p-7">
+          {error && (
+            <InlineError><span className="inline-flex items-center gap-2"><AlertCircle size={16} />{error}</span></InlineError>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
             <div className="flex flex-col gap-sm">
-              <label className="text-label-md font-label-md text-on-surface-variant">Title</label>
+              <label className="text-sm font-bold text-on-surface" htmlFor="report-title">Short title</label>
               <input
                 required
                 value={title}
                 onChange={e => { resetDuplicateReview(); setTitle(e.target.value); }}
-                className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors"
+                id="report-title"
+                className="civic-focus min-h-11 rounded-xl border border-[#d8d6cf] bg-[#fffefa] px-3 text-sm text-on-surface transition-colors placeholder:text-on-surface-variant/70 focus:border-primary"
                 placeholder="E.g., Deep Pothole on 5th Ave"
               />
             </div>
 
             <div className="flex flex-col gap-sm">
-              <label className="text-label-md font-label-md text-on-surface-variant">Category</label>
+              <label className="text-sm font-bold text-on-surface" htmlFor="report-category">Category</label>
               <select
+                id="report-category"
                 value={category}
                 onChange={e => { resetDuplicateReview(); setCategory(e.target.value); }}
-                className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors"
+                className="civic-focus min-h-11 rounded-xl border border-[#d8d6cf] bg-[#fffefa] px-3 text-sm text-on-surface transition-colors focus:border-primary"
               >
                 {REPORT_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -251,6 +274,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
                   </option>
                 ))}
               </select>
+              <div className="flex items-center gap-1 text-xs text-on-surface-variant"><Sparkles size={13} className="text-[#9a6119]" />Category suggestions are advisory.</div>
               <SmartSuggestion
                 title={title}
                 description={description}
@@ -260,13 +284,14 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
           </div>
 
           <div className="flex flex-col gap-sm">
-            <label className="text-label-md font-label-md text-on-surface-variant">Description</label>
+            <label className="text-sm font-bold text-on-surface" htmlFor="report-description">Description</label>
             <textarea
               required
+              id="report-description"
               rows={3}
               value={description}
               onChange={e => { resetDuplicateReview(); setDescription(e.target.value); }}
-              className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors resize-none"
+              className="civic-focus min-h-28 rounded-xl border border-[#d8d6cf] bg-[#fffefa] p-3 text-sm leading-6 text-on-surface transition-colors placeholder:text-on-surface-variant/70 focus:border-primary"
               placeholder="Provide details about the issue..."
             />
           </div>
@@ -277,13 +302,14 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
                 Location (Click map to drop pin)
               </label>
               {location && (
-                <span className="text-xs font-semibold text-primary">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                  <MapPin size={13} />
                   Pin: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
                 </span>
               )}
             </div>
 
-            <div className="h-[250px] rounded-lg overflow-hidden border border-outline-variant relative z-0">
+            <div className="relative z-0 h-[250px] overflow-hidden rounded-2xl border border-[#d8d6cf]">
               <MapComponent
                 mapId="modal-map"
                 interactive={true}
@@ -298,9 +324,9 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
 
           {/* Nearby Issues Section (Feature 8) */}
           {location && nearbyIssues.length > 0 && (
-            <div className="bg-surface-container-highest/60 p-3 rounded-xl border border-outline-variant space-y-2">
+            <Surface subtle className="space-y-2 p-4">
               <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface">
-                <span className="material-symbols-outlined text-[16px] text-primary">near_me</span>
+                <MapPin className="text-primary" size={16} />
                 <span>Nearby Reported Issues (Within 2 km)</span>
               </div>
               <p className="text-[11px] text-on-surface-variant">
@@ -334,17 +360,17 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
                   </div>
                 ))}
               </div>
-            </div>
+            </Surface>
           )}
 
           {intelligenceNotice && (
-            <div role="status" className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
+            <div role="status" className="rounded-xl border border-[#ecd28b] bg-[#fff7e2] p-3 text-sm text-[#84651a]">
               {intelligenceNotice}
             </div>
           )}
 
           {duplicateCandidates.length > 0 && (
-            <div className="bg-primary/5 p-4 rounded-xl border border-primary/30 space-y-3" aria-live="polite">
+            <Surface subtle className="space-y-3 border-primary/30 p-4" aria-live="polite">
               <div>
                 <h3 className="font-semibold text-on-surface">This may already be reported</h3>
                 <p className="text-xs text-on-surface-variant mt-1">
@@ -384,44 +410,33 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
                   Different issue — submit new report
                 </button>
               </div>
-            </div>
+            </Surface>
           )}
 
-          <div className="flex flex-col gap-sm">
-            <label className="text-label-md font-label-md text-on-surface-variant">Photo Evidence (Optional, max 5 MB)</label>
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-sm font-bold text-on-surface">Evidence photo <span className="font-normal text-on-surface-variant">(optional)</span></p>
+              <p className="mt-1 text-xs text-on-surface-variant">JPG, PNG, or WebP · maximum 5 MB</p>
+            </div>
+            <label htmlFor="report-image" className="civic-focus flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#c4bdaf] bg-[#faf9f5] px-5 py-8 text-center transition-colors hover:border-primary hover:bg-[#f5f1e8]">
+              <FileImage className="text-primary" size={24} />
+              <span className="text-sm font-bold text-on-surface">{imageFile ? imageFile.name : 'Choose an image to attach'}</span>
+              <span className="text-xs text-on-surface-variant">Browse from your device</span>
+            </label>
             <input
+              id="report-image"
               type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={handleImageChange}
-              className="text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-colors cursor-pointer"
+              className="sr-only"
             />
           </div>
 
-          <div className="flex justify-end gap-sm pt-sm border-t border-outline-variant mt-sm">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-md py-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-variant transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors shadow-md disabled:opacity-50 flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-[16px]">sync</span>
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[16px]">send</span>
-                  Submit Report
-                </>
-              )}
-            </button>
+          <div className="flex flex-col-reverse justify-end gap-3 border-t border-[#d8d6cf] pt-5 sm:flex-row">
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? <><span className="inline-block animate-spin"><ChevronRight size={16} /></span>Checking report...</> : <><Send size={16} />Submit report</>}
+            </Button>
           </div>
         </form>
       </div>

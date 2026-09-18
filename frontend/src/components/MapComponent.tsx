@@ -162,7 +162,7 @@ export default function MapComponent({
   onUserLocationFound,
   onUserLocationError
 }: MapComponentProps) {
-  const mounted = typeof window !== 'undefined';
+  const [mounted, setMounted] = useState(false);
   const [mapKey] = useState(() => `${mapId}-${Math.random().toString(36).substring(2, 9)}`);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
@@ -185,20 +185,12 @@ export default function MapComponent({
 
   const [mapCenter, setMapCenter] = useState<[number, number]>(initialCenter);
 
+  // Delay Leaflet's first mount until after hydration. This also prevents
+  // React Strict Mode's development remount from reusing a half-initialized
+  // Leaflet container.
   useEffect(() => {
-    const container = document.getElementById(mapKey);
-    if (container) {
-      // @ts-expect-error Leaflet stores its internal id on the DOM node.
-      container._leaflet_id = null;
-    }
-    return () => {
-      const el = document.getElementById(mapKey);
-      if (el) {
-        // @ts-expect-error Leaflet stores its internal id on the DOM node.
-        el._leaflet_id = null;
-      }
-    };
-  }, [mapKey]);
+    queueMicrotask(() => setMounted(true));
+  }, []);
 
   useEffect(() => {
     if (userLocation) {

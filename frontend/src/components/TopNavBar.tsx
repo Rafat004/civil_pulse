@@ -1,37 +1,28 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { Bell, ClipboardCheck, LayoutDashboard, LogOut, Map, Plus, ShieldCheck } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { getUnreadNotificationCount } from "@/services/notifications";
+import { Button, IconButton } from "./ui";
 
 export default function TopNavBar() {
   const { user, role, signOut } = useAuth();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [signOutError, setSignOutError] = useState<string | null>(null);
-
-  // Extract name for Avatar
   const fullName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
   const initial = fullName.charAt(0).toUpperCase();
-
-  const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
-  const glassTabClass = (href: string) =>
-    `flex items-center font-label-md text-label-md backdrop-blur-md border rounded-full px-5 py-2 transition-colors duration-200 ${
-      isActive(href)
-        ? "text-primary bg-primary/10 border-primary/30"
-        : "text-on-surface-variant hover:text-on-surface bg-[#E2DFD0]/10 hover:bg-[#E2DFD0]/30 border-[#E2DFD0]/30"
-    }`;
 
   const fetchUnread = useCallback(async () => {
     if (!user) return;
     try {
-      const count = await getUnreadNotificationCount(user.id);
-      setUnreadCount(count);
-    } catch (err) {
-      console.error("Failed to fetch unread notification count:", err);
+      setUnreadCount(await getUnreadNotificationCount(user.id));
+    } catch {
+      // The notification badge is non-critical; keep navigation usable.
     }
   }, [user]);
 
@@ -39,30 +30,17 @@ export default function TopNavBar() {
     void Promise.resolve().then(fetchUnread);
   }, [fetchUnread]);
 
-  // Realtime subscription for unread notifications count
   useEffect(() => {
     if (!user) return;
-
     const channel = supabase
       .channel(`top-nav-notifications-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          void fetchUnread();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => void fetchUnread())
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchUnread, user]);
+
+  const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const navClass = (href: string) => `civic-focus inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${isActive(href) ? "bg-[#eee8dc] text-primary" : "text-on-surface-variant hover:bg-[#f0eee8] hover:text-primary"}`;
 
   const handleSignOut = async () => {
     setSignOutError(null);
@@ -74,104 +52,54 @@ export default function TopNavBar() {
   };
 
   return (
-    <nav className="bg-surface/60 backdrop-blur-xl border-b border-white/10 dark:border-white/5 w-full sticky top-0 z-50 shadow-sm">
-      <div className="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-16 max-w-[1440px] mx-auto">
-        <Link href="/" className="flex items-center gap-xs">
-          <span className="material-symbols-outlined text-primary text-3xl icon-fill">assured_workload</span>
-          <span className="font-headline-md text-headline-md font-bold text-primary tracking-tight">CivicPulse</span>
+    <nav className="sticky top-0 z-50 border-b border-[#d8d6cf]/80 bg-[#f5f3ee]/95 backdrop-blur-xl">
+      <div className="civic-container flex min-h-[72px] items-center justify-between gap-4">
+        <Link href="/" className="civic-focus inline-flex items-center gap-3 rounded-lg" aria-label="CivicPulse home">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-white shadow-[0_8px_18px_rgba(23,50,74,0.18)]">
+            <ShieldCheck size={21} strokeWidth={2.2} />
+          </span>
+          <span className="font-headline-md text-headline-md font-extrabold tracking-[-0.045em] text-primary">CivicPulse</span>
         </Link>
-        
-        <div className="hidden md:flex gap-4 items-center">
-          {role === 'admin' ? (
+
+        <div className="hidden items-center gap-1 md:flex">
+          {role === "admin" ? (
             <>
-              <Link href="/map" className={glassTabClass("/map")} aria-current={isActive("/map") ? "page" : undefined}>
-                Map
-              </Link>
-              <Link href="/approvals" className={glassTabClass("/approvals")} aria-current={isActive("/approvals") ? "page" : undefined}>
-                Approvals
-              </Link>
+              <Link href="/approvals" className={navClass("/approvals")} aria-current={isActive("/approvals") ? "page" : undefined}><ClipboardCheck size={16} />Operations</Link>
+              <Link href="/map" className={navClass("/map")} aria-current={isActive("/map") ? "page" : undefined}><Map size={16} />Map</Link>
             </>
           ) : (
             <>
-              <Link href="/" className={glassTabClass("/")} aria-current={isActive("/") ? "page" : undefined}>
-                Dashboard
-              </Link>
-              <Link href="/map" className={glassTabClass("/map")} aria-current={isActive("/map") ? "page" : undefined}>
-                Map
-              </Link>
-              {user && (
-                <Link href="/my-reports" className={glassTabClass("/my-reports")} aria-current={isActive("/my-reports") ? "page" : undefined}>
-                  My Reports
-                </Link>
-              )}
+              <Link href="/" className={navClass("/")} aria-current={isActive("/") ? "page" : undefined}><LayoutDashboard size={16} />Discover</Link>
+              <Link href="/map" className={navClass("/map")} aria-current={isActive("/map") ? "page" : undefined}><Map size={16} />Map</Link>
+              {user && <Link href="/my-reports" className={navClass("/my-reports")} aria-current={isActive("/my-reports") ? "page" : undefined}><ClipboardCheck size={16} />My reports</Link>}
             </>
           )}
         </div>
-        
-        <div className="flex items-center gap-md">
+
+        <div className="flex items-center gap-2">
           {user ? (
             <>
-              {role === 'admin' && (
-                <span className="hidden md:inline-block bg-error text-on-error px-sm py-1 rounded text-xs font-bold uppercase">Admin</span>
-              )}
-              {role !== 'admin' && (
-                <button 
-                  onClick={() => window.dispatchEvent(new Event('open-new-report'))}
-                  className="hidden md:flex items-center gap-sm bg-primary hover:bg-primary-fixed-dim text-on-primary font-label-md text-label-md px-md py-sm rounded-full transition-colors duration-200"
-                >
-                  <span className="material-symbols-outlined">add</span>
-                  New Report
-                </button>
-              )}
-              <div className="flex gap-sm items-center border-l border-outline-variant pl-md ml-sm">
-                
-                {/* Notifications Link */}
-                <Link
-                  href="/notifications"
-                  className="relative p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-variant/40"
-                  title="Notifications"
-                  aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
-                >
-                  <span className="material-symbols-outlined text-2xl">notifications</span>
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 bg-error text-on-error text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </Link>
-
-                {/* User Avatar */}
-                <div className="flex items-center gap-xs mr-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-sm">
-                    {initial}
-                  </div>
-                  <span className="hidden lg:block text-sm font-label-md text-on-surface truncate max-w-[120px]">
-                    {fullName}
-                  </span>
-                </div>
-
-                <button 
-                  onClick={() => void handleSignOut()}
-                  className="flex items-center justify-center text-on-surface-variant hover:text-error transition-colors duration-200 px-sm py-sm rounded-lg hover:bg-error/10 font-label-md text-sm"
-                >
-                  <span className="material-symbols-outlined mr-1 text-[18px]">logout</span>
-                  Sign Out
-                </button>
+              {role !== "admin" && <Button size="sm" className="hidden sm:inline-flex" onClick={() => window.dispatchEvent(new Event("open-new-report"))}><Plus size={16} />Report an issue</Button>}
+              {role === "admin" && <span className="hidden items-center gap-1.5 rounded-full border border-[#efc3c0] bg-[#fff1ef] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#9a3d38] sm:inline-flex"><ShieldCheck size={14} />Admin</span>}
+              <Link href="/notifications" className="civic-focus relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-on-surface-variant hover:bg-[#ece9e1] hover:text-primary" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}>
+                <Bell size={18} />
+                {unreadCount > 0 && <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#a13a32] px-1 text-[9px] font-extrabold text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              </Link>
+              <div className="hidden items-center gap-2 border-l border-[#d8d6cf] pl-3 lg:flex">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-[#eee8dc] text-sm font-extrabold text-primary">{initial}</span>
+                <span className="max-w-[120px] truncate text-sm font-bold text-on-surface">{fullName}</span>
               </div>
-              {signOutError && <span role="alert" className="sr-only">{signOutError}</span>}
+              <IconButton label="Sign out" onClick={() => void handleSignOut()}><LogOut size={17} /></IconButton>
             </>
           ) : (
-            <div className="flex gap-sm">
-              <Link href="/auth/login" className="flex items-center justify-center text-primary font-label-md hover:bg-primary/10 transition-colors duration-200 px-md py-sm rounded-full">
-                Log In
-              </Link>
-              <Link href="/auth/register" className="flex items-center justify-center bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors duration-200 px-md py-sm rounded-full shadow-sm">
-                Sign Up
-              </Link>
+            <div className="flex items-center gap-1">
+              <Link href="/auth/login" className="civic-focus rounded-lg px-3 py-2 text-sm font-bold text-primary hover:bg-[#eee8dc]">Sign in</Link>
+              <Link href="/auth/register" className="inline-flex min-h-10 items-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(23,50,74,0.16)] hover:bg-primary/90">Create account</Link>
             </div>
           )}
         </div>
       </div>
+      {signOutError && <p role="alert" className="border-t border-[#efc3c0] bg-[#fff1ef] px-4 py-2 text-center text-xs text-[#9a3d38]">{signOutError}</p>}
     </nav>
   );
 }

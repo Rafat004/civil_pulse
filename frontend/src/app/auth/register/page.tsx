@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmationRequired, setConfirmationRequired] = useState(false);
   const router = useRouter();
 
   const passwordIsLongEnough = password.length >= 8;
@@ -33,7 +34,7 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -45,6 +46,12 @@ export default function RegisterPage() {
 
     if (signUpError) {
       setError(signUpError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (data.user && !data.session) {
+      setConfirmationRequired(true);
       setLoading(false);
       return;
     }
@@ -121,14 +128,23 @@ export default function RegisterPage() {
             <p>Enter your details below. It only takes a minute.</p>
           </div>
 
-          {error && (
+          {confirmationRequired ? (
+            <div className="register-confirmation" role="status" aria-live="polite">
+              <span className="material-symbols-outlined" aria-hidden="true">mark_email_read</span>
+              <div>
+                <strong>Check your inbox</strong>
+                <p>We sent a verification link to <b>{email}</b>. Confirm your email, then return here to sign in.</p>
+                <Link href="/auth/login" className="register-confirmation-link">Go to sign in</Link>
+              </div>
+            </div>
+          ) : error && (
             <div className="register-error" role="alert">
               <span className="material-symbols-outlined" aria-hidden="true">error</span>
               <span>{error}</span>
             </div>
           )}
 
-          <form className="register-form" onSubmit={handleRegister}>
+          {!confirmationRequired && <form className="register-form" onSubmit={handleRegister}>
             <div className="register-field">
               <label htmlFor="full-name">Full name</label>
               <div className="register-input-wrap">
@@ -224,7 +240,7 @@ export default function RegisterPage() {
                 {loading ? "progress_activity" : "arrow_forward"}
               </span>
             </button>
-          </form>
+          </form>}
 
           <p className="register-legal">
             By creating an account, you agree to use CivicPulse responsibly and

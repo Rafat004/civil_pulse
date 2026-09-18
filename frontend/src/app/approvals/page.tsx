@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Activity, AlertCircle, Ban, BadgeCheck, CheckCircle2, ClipboardCheck, Copy, ExternalLink, History, Hourglass, MapPin, PieChart, RefreshCcw, Search, ShieldCheck, X, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import StatusBadge, { StatusType } from "@/components/StatusBadge";
@@ -10,6 +11,7 @@ import { changeReportStatus, getDepartments } from "@/services/issues";
 import { getAdminSummaryMetrics, getReportsForDuplicateSelection, type AdminSummaryMetrics } from "@/services/admin";
 import { REPORT_CATEGORIES, REPORT_STATUSES, getValidNextStatuses } from "@/lib/constants";
 import type { Department, Report, ReportStatus } from "@/lib/types";
+import { Button, InlineError, MetricCard, PageHeader } from "@/components/ui";
 
 interface ExtendedReport extends Report {
   affected_count?: number;
@@ -248,104 +250,39 @@ export default function ApprovalsPage() {
   });
 
   if (authLoading || loading) {
-    return (
-      <main className="min-h-screen bg-background p-md md:p-xl flex items-center justify-center">
-        <div className="flex items-center gap-3 text-on-surface-variant">
-          <span className="material-symbols-outlined animate-spin text-3xl text-primary">sync</span>
-          <span className="font-label-md">Loading Admin Workspace...</span>
-        </div>
-      </main>
-    );
+    return <main className="civic-page"><div className="civic-container py-12"><div className="flex items-center gap-3 text-on-surface-variant"><RefreshCcw className="animate-spin text-primary" size={22} /><span className="text-sm font-bold">Loading operations workspace…</span></div></div></main>;
   }
 
   if (role !== "admin") return null;
 
   return (
-    <main className="min-h-screen bg-background p-margin-mobile md:p-margin-desktop py-lg">
-      <div className="max-w-[1400px] mx-auto flex flex-col gap-lg">
+    <main className="civic-page">
+      <div className="civic-container flex max-w-[1400px] flex-col gap-8 py-8 md:py-12">
         {/* Workspace Title Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-md border-b border-outline-variant pb-md">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 px-3 py-1 rounded-full text-xs font-bold text-primary mb-2">
-              <span className="material-symbols-outlined text-sm">admin_panel_settings</span>
+        <PageHeader
+          eyebrow="Civic operations"
+          title="Admin workspace & approvals"
+          description="Review community reports, assign the right team, and keep lifecycle changes visible and accountable."
+          actions={<Button variant="secondary" onClick={fetchAdminData}><RefreshCcw size={15} />Refresh workspace</Button>}
+        />
+        <div className="-mt-4 flex items-center gap-2 text-xs font-bold text-primary">
+              <ShieldCheck size={15} />
               Civic Operations Dashboard
-            </div>
-            <h1 className="text-headline-lg font-headline-lg text-on-surface font-extrabold">
-              Admin Workspace & Approvals
-            </h1>
-            <p className="text-body-md text-on-surface-variant mt-1">
-              Real-time oversight, department assignment, duplicate detection, and lifecycle management.
-            </p>
-            {actionError && <p role="alert" className="mt-2 text-sm text-error">{actionError}</p>}
-          </div>
-
-          <button
-            onClick={fetchAdminData}
-            className="bg-surface border border-outline-variant text-on-surface hover:border-primary font-label-md text-xs font-semibold px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[16px]">refresh</span>
-            Refresh Workspace
-          </button>
         </div>
+        {actionError && <InlineError>{actionError}</InlineError>}
 
         {error && (
-          <div className="bg-error/10 border border-error/20 p-md rounded-2xl text-error text-center font-body-md">
-            {error}
-          </div>
+          <InlineError><span className="inline-flex items-center gap-2"><AlertCircle size={16} />{error}</span></InlineError>
         )}
 
         {/* SECTION 1: Admin Overview Cards */}
         {metrics && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-md">
-            <div className="glass-card bg-surface/70 border border-outline-variant rounded-2xl p-md flex flex-col gap-1 shadow-sm">
-              <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                Total Open
-              </span>
-              <div className="text-display-md font-bold text-primary leading-tight">
-                {metrics.totalOpen}
-              </div>
-              <span className="text-[11px] text-on-surface-variant">Active unresolved issues</span>
-            </div>
-
-            <div className="glass-card bg-surface/70 border border-amber-500/30 rounded-2xl p-md flex flex-col gap-1 shadow-sm">
-              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                Reported
-              </span>
-              <div className="text-display-md font-bold text-amber-600 dark:text-amber-400 leading-tight">
-                {metrics.reportedCount}
-              </div>
-              <span className="text-[11px] text-on-surface-variant">Awaiting verification</span>
-            </div>
-
-            <div className="glass-card bg-surface/70 border border-blue-500/30 rounded-2xl p-md flex flex-col gap-1 shadow-sm">
-              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                Verified
-              </span>
-              <div className="text-display-md font-bold text-blue-600 dark:text-blue-400 leading-tight">
-                {metrics.verifiedCount}
-              </div>
-              <span className="text-[11px] text-on-surface-variant">Confirmed by community</span>
-            </div>
-
-            <div className="glass-card bg-surface/70 border border-purple-500/30 rounded-2xl p-md flex flex-col gap-1 shadow-sm">
-              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-                In Progress
-              </span>
-              <div className="text-display-md font-bold text-purple-600 dark:text-purple-400 leading-tight">
-                {metrics.inProgressCount}
-              </div>
-              <span className="text-[11px] text-on-surface-variant">Work underway</span>
-            </div>
-
-            <div className="glass-card bg-surface/70 border border-emerald-500/30 rounded-2xl p-md flex flex-col gap-1 shadow-sm col-span-2 sm:col-span-1">
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                Resolved
-              </span>
-              <div className="text-display-md font-bold text-emerald-600 dark:text-emerald-400 leading-tight">
-                {metrics.resolvedCount}
-              </div>
-              <span className="text-[11px] text-on-surface-variant">Completed maintenance</span>
-            </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <MetricCard label="Total open" value={metrics.totalOpen} detail="Active unresolved issues" icon={<Activity size={18} />} />
+            <MetricCard label="Reported" value={metrics.reportedCount} detail="Awaiting verification" tone="amber" icon={<ClipboardCheck size={18} />} />
+            <MetricCard label="Verified" value={metrics.verifiedCount} detail="Confirmed by community" tone="blue" icon={<CheckCircle2 size={18} />} />
+            <MetricCard label="In progress" value={metrics.inProgressCount} detail="Work underway" tone="amber" icon={<Activity size={18} />} />
+            <MetricCard label="Resolved" value={metrics.resolvedCount} detail="Completed maintenance" tone="green" icon={<CheckCircle2 size={18} />} />
           </div>
         )}
 
@@ -355,7 +292,7 @@ export default function ApprovalsPage() {
             {/* Recent Activity Timeline */}
             <div className="lg:col-span-6 glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
               <h2 className="font-headline-md text-headline-md text-on-surface font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">history</span>
+                <History className="text-primary" size={20} />
                 Recent Operations Activity
               </h2>
               <div className="flex flex-col gap-3">
@@ -395,7 +332,7 @@ export default function ApprovalsPage() {
               {/* Category Breakdown */}
               <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md flex flex-col gap-sm shadow-md">
                 <h3 className="font-label-md text-label-md font-bold text-on-surface uppercase tracking-wider flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-lg">pie_chart</span>
+                  <PieChart className="text-primary" size={20} />
                   Issue Categories Breakdown
                 </h3>
                 <div className="flex flex-wrap gap-2 pt-xs">
@@ -420,7 +357,7 @@ export default function ApprovalsPage() {
               {/* Oldest Unresolved Issues */}
               <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md flex flex-col gap-sm shadow-md flex-grow">
                 <h3 className="font-label-md text-label-md font-bold text-on-surface uppercase tracking-wider flex items-center gap-2">
-                  <span className="material-symbols-outlined text-amber-500 text-lg">hourglass_bottom</span>
+                <Hourglass className="text-[#b87924]" size={20} />
                   Oldest Unresolved Reports
                 </h3>
                 <div className="flex flex-col gap-2 pt-xs">
@@ -447,7 +384,7 @@ export default function ApprovalsPage() {
                             className="p-1 text-on-surface-variant hover:text-primary transition-colors"
                             title="Open Issue Detail"
                           >
-                            <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                            <ExternalLink size={18} />
                           </Link>
                         </div>
                       </div>
@@ -463,7 +400,7 @@ export default function ApprovalsPage() {
         <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-md border-b border-outline-variant/60 pb-md">
             <h2 className="font-headline-md text-headline-md text-on-surface font-bold flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">manage_search</span>
+              <Search className="text-primary" size={20} />
               Report Lifecycle Workspace ({filteredReports.length})
             </h2>
 
@@ -471,9 +408,7 @@ export default function ApprovalsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex flex-wrap items-center gap-sm w-full lg:w-auto">
               {/* Search input */}
               <div className="relative flex-grow sm:w-60">
-                <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[18px]">
-                  search
-                </span>
+                <Search className="absolute left-3 top-2.5 text-on-surface-variant" size={18} />
                 <input
                   type="text"
                   value={searchQuery}
@@ -584,7 +519,7 @@ export default function ApprovalsPage() {
                               href={`/issues/${issue.duplicate_of}`}
                               className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-bold hover:underline mt-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20"
                             >
-                              <span className="material-symbols-outlined text-[12px]">content_copy</span>
+                              <Copy size={12} />
                               Duplicate of #{issue.duplicate_of.slice(0, 8)}
                             </Link>
                           )}
@@ -594,7 +529,7 @@ export default function ApprovalsPage() {
                         <td className="p-sm">
                           <span className="font-semibold text-on-surface block">{issue.category}</span>
                           <span className="text-[11px] text-on-surface-variant flex items-center gap-0.5 mt-0.5">
-                            <span className="material-symbols-outlined text-[13px]">pin_drop</span>
+                            <MapPin size={13} />
                             {issue.zone}
                           </span>
                         </td>
@@ -625,12 +560,12 @@ export default function ApprovalsPage() {
                         <td className="p-sm">
                           <div className="flex flex-col gap-0.5 text-[11px]">
                             <span className="text-amber-600 font-semibold flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[14px]">warning</span>
+                              <AlertTriangle size={14} />
                               Affected: {issue.affected_count || 0}
                             </span>
                             {(issue.confirmed_count || 0) > 0 && (
                               <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[14px]">verified</span>
+                                <BadgeCheck size={14} />
                                 Confirmed: {issue.confirmed_count}
                               </span>
                             )}
@@ -661,7 +596,7 @@ export default function ApprovalsPage() {
                               className="p-1.5 bg-surface border border-outline-variant text-on-surface rounded-lg hover:border-primary transition-colors flex items-center justify-center"
                               title="View Full Issue Detail Workspace"
                             >
-                              <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                              <ExternalLink size={18} />
                             </Link>
                           </div>
                         </td>
@@ -681,7 +616,7 @@ export default function ApprovalsPage() {
           <div role="dialog" aria-modal="true" aria-labelledby="duplicate-dialog-title" className="bg-surface border border-outline-variant rounded-2xl max-w-lg w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
             <div className="flex justify-between items-center border-b border-outline-variant pb-sm">
               <h3 id="duplicate-dialog-title" className="font-headline-md text-on-surface font-bold flex items-center gap-2 text-amber-600">
-                <span className="material-symbols-outlined">content_copy</span>
+                <Copy size={20} />
                 Mark Report as Duplicate
               </h3>
               <button
@@ -690,7 +625,7 @@ export default function ApprovalsPage() {
                 aria-label="Close duplicate report dialog"
                 className="text-on-surface-variant hover:text-on-surface p-1"
               >
-                <span className="material-symbols-outlined">close</span>
+                <X size={20} />
               </button>
             </div>
 
@@ -757,7 +692,7 @@ export default function ApprovalsPage() {
           <div role="dialog" aria-modal="true" aria-labelledby="reject-dialog-title" className="bg-surface border border-outline-variant rounded-2xl max-w-lg w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
             <div className="flex justify-between items-center border-b border-outline-variant pb-sm">
               <h3 id="reject-dialog-title" className="font-headline-md text-on-surface font-bold flex items-center gap-2 text-error">
-                <span className="material-symbols-outlined">block</span>
+                <Ban size={20} />
                 Reject Report
               </h3>
               <button
@@ -766,7 +701,7 @@ export default function ApprovalsPage() {
                 aria-label="Close reject report dialog"
                 className="text-on-surface-variant hover:text-on-surface p-1"
               >
-                <span className="material-symbols-outlined">close</span>
+                <X size={20} />
               </button>
             </div>
 

@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import dynamicImport from 'next/dynamic';
+import { AlertTriangle, BookOpen, ChevronUp, Compass, Filter, MapPin, RefreshCcw, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { REPORT_CATEGORIES, REPORT_STATUSES } from '@/lib/constants';
-import { getStatusColor, getCategoryIconSymbol } from '@/lib/mapUtils';
+import { getStatusColor } from '@/lib/mapUtils';
 import type { MapMarkerItem } from '@/components/MapComponent';
 
 const MapComponent = dynamicImport(() => import('@/components/MapComponent'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full bg-surface-container-highest flex items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center bg-[#e5e2da]">
       <span className="text-on-surface-variant font-label-md">Loading Map & Discovery...</span>
     </div>
   )
@@ -171,15 +172,15 @@ export default function MapView() {
   const hasActiveFilters = categoryFilter !== 'All' || statusFilter !== 'All' || searchQuery.trim() !== '';
 
   return (
-    <main className="flex-1 relative flex flex-col md:flex-row overflow-hidden h-[calc(100vh-64px)] w-full bg-surface">
+    <main className="relative flex h-[calc(100vh-64px)] w-full flex-1 flex-col overflow-hidden bg-[#e5e2da] md:flex-row">
       {/* Sidebar / Floating Control Panel */}
       <div className="absolute top-3 left-3 z-[1001] w-full max-w-[calc(100vw-24px)] md:max-w-[340px] pointer-events-auto">
-        <div className="bg-surface-container/95 backdrop-blur-md border border-outline-variant/60 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="civic-surface flex max-h-[85vh] flex-col overflow-hidden shadow-[0_18px_48px_rgba(23,37,53,0.14)]">
           {/* Header Bar */}
           <div className="p-3 border-b border-outline-variant/40 flex items-center justify-between bg-surface-container-high/50">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">explore</span>
-              <h1 className="font-title-md font-bold text-on-surface text-sm">Map & Discovery</h1>
+              <Compass className="text-primary" size={20} />
+              <h1 className="font-headline-md text-sm font-bold text-on-surface">Map & Discovery</h1>
             </div>
 
             <div className="flex items-center gap-1">
@@ -192,7 +193,7 @@ export default function MapView() {
                 }`}
                 title="Toggle Map Legend"
               >
-                <span className="material-symbols-outlined text-[16px]">legend_toggle</span>
+                <BookOpen size={16} />
                 <span className="hidden sm:inline">Legend</span>
               </button>
 
@@ -203,9 +204,7 @@ export default function MapView() {
                 className="md:hidden p-1.5 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-colors"
                 title="Toggle Filter Controls"
               >
-                <span className="material-symbols-outlined text-[18px]">
-                  {showControlsMobile ? 'expand_less' : 'tune'}
-                </span>
+                {showControlsMobile ? <ChevronUp size={18} /> : <Filter size={18} />}
               </button>
             </div>
           </div>
@@ -214,9 +213,7 @@ export default function MapView() {
           <div className={`${showControlsMobile ? 'block' : 'hidden md:block'} p-3 space-y-3 overflow-y-auto`}>
             {/* Search Input */}
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant">
-                search
-              </span>
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" size={17} />
               <input
                 type="text"
                 value={searchQuery}
@@ -230,7 +227,7 @@ export default function MapView() {
                   aria-label="Clear map search"
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
                 >
-                  <span className="material-symbols-outlined text-[14px]">close</span>
+                  <X size={14} />
                 </button>
               )}
             </div>
@@ -285,7 +282,7 @@ export default function MapView() {
                   onClick={resetFilters}
                   className="text-xs font-semibold text-primary hover:underline flex items-center gap-0.5"
                 >
-                  <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                  <RefreshCcw size={14} />
                   Reset
                 </button>
               )}
@@ -318,9 +315,7 @@ export default function MapView() {
                   <div className="grid grid-cols-2 gap-1.5">
                     {REPORT_CATEGORIES.map((cat) => (
                       <div key={cat} className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px] text-primary">
-                          {getCategoryIconSymbol(cat)}
-                        </span>
+                        <MapPin className="text-primary" size={14} />
                         <span className="text-[10px] text-on-surface-variant font-medium truncate">{cat}</span>
                       </div>
                     ))}
@@ -348,7 +343,7 @@ export default function MapView() {
 
       {loading && (
         <div role="status" className="absolute inset-0 z-[900] flex items-center justify-center bg-surface/40 pointer-events-none">
-          <span className="rounded-full bg-surface-container px-4 py-2 text-sm text-on-surface shadow-lg">Loading reports…</span>
+          <span className="rounded-full border border-[#d8d6cf] bg-[#fffefa] px-4 py-2 text-sm text-on-surface shadow-lg">Loading reports…</span>
         </div>
       )}
       {error && (
@@ -360,10 +355,10 @@ export default function MapView() {
       {/* Geolocation feedback notification */}
       {locationError && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-error text-on-error text-xs px-4 py-2 rounded-full shadow-lg border border-error/30 flex items-center gap-2 animate-bounce">
-          <span className="material-symbols-outlined text-[16px]">warning</span>
+          <AlertTriangle size={16} />
           <span>{locationError}</span>
           <button onClick={() => setLocationError(null)} className="ml-1 hover:opacity-80">
-            <span className="material-symbols-outlined text-[14px]">close</span>
+            <X size={14} />
           </button>
         </div>
       )}

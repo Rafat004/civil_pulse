@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { ArrowLeft, ArrowRight, BadgeCheck, Bell, BellRing, Camera, CircleAlert, Clock3, Copy, History, LoaderCircle, MapPin, MessageCircle, Save, Send, ShieldCheck, Trash2, Users, CheckCircle2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
@@ -21,6 +22,7 @@ import { followReport, getFollowerCount, isFollowingReport, unfollowReport } fro
 import { validateReportImage } from "@/lib/images";
 import SmartSuggestion from "@/components/SmartSuggestion";
 import type { Comment, Department, Report, ReportStatus, ReportStatusHistory } from "@/lib/types";
+import { CategoryLabel, LoadingSkeleton, Surface } from "@/components/ui";
 
 const MapComponent = dynamic(() => import("@/components/MapComponent"), { ssr: false });
 
@@ -352,10 +354,13 @@ export default function IssueDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-background p-md md:p-xl flex items-center justify-center">
-        <div className="flex items-center gap-3 text-on-surface-variant">
-          <span className="material-symbols-outlined animate-spin text-2xl">sync</span>
-          <span className="font-label-md">Loading issue details...</span>
+      <main className="civic-page">
+        <div className="civic-container py-10">
+          <LoadingSkeleton className="h-12 w-56" />
+          <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+            <LoadingSkeleton className="h-[420px]" />
+            <LoadingSkeleton className="h-[320px]" />
+          </div>
         </div>
       </main>
     );
@@ -363,11 +368,14 @@ export default function IssueDetailPage() {
 
   if (error || !issue) {
     return (
-      <main className="min-h-screen bg-background p-md md:p-xl flex flex-col items-center justify-center gap-md">
-        <div className="text-error font-headline-md">{error || "Issue not found"}</div>
-        <Link href="/" className="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md">
+      <main className="civic-page flex items-center justify-center">
+        <div className="civic-container flex max-w-xl flex-col items-center gap-4 py-20 text-center">
+          <CircleAlert className="text-[#a13a32]" size={34} />
+          <div className="font-headline-md font-bold text-on-surface">{error || "Issue not found"}</div>
+          <Link href="/" className="civic-focus inline-flex min-h-11 items-center rounded-xl bg-primary px-5 text-sm font-bold text-on-primary">
           Return Home
-        </Link>
+          </Link>
+        </div>
       </main>
     );
   }
@@ -376,12 +384,12 @@ export default function IssueDetailPage() {
   const hasOriginalImage = Boolean(issue.image_url);
 
   return (
-    <main className="min-h-screen bg-background p-margin-mobile md:p-margin-desktop py-lg">
-      <div className="max-w-[1100px] mx-auto flex flex-col gap-lg">
+    <main className="civic-page">
+      <div className="civic-container flex flex-col gap-8 py-8 md:py-12">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-          <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+          <Link href="/" className="civic-focus inline-flex items-center gap-1 rounded-lg px-1 py-1 transition-colors hover:text-primary">
+            <ArrowLeft size={15} />
             Back to Feed
           </Link>
           <span>/</span>
@@ -392,31 +400,29 @@ export default function IssueDetailPage() {
 
         {/* Duplicate Banner */}
         {issue.duplicate_of && (
-          <div className="p-md rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-md text-amber-700 dark:text-amber-400">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#ecd28b] bg-[#fff7e2] p-4 text-[#84651a]">
             <div className="flex items-center gap-2 font-medium text-sm">
-              <span className="material-symbols-outlined text-amber-600">file_copy</span>
+              <Copy size={18} />
               <span>This report has been marked as a duplicate.</span>
             </div>
             <Link
               href={`/issues/${issue.duplicate_of}`}
-              className="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-label-md text-xs hover:bg-amber-700 transition-colors flex items-center gap-1"
+              className="civic-focus inline-flex min-h-9 items-center gap-1 rounded-xl bg-[#b87924] px-3 text-xs font-bold text-white transition-colors hover:bg-[#9a6119]"
             >
               <span>View Canonical Issue</span>
-              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              <ArrowRight size={14} />
             </Link>
           </div>
         )}
 
         {/* Issue Header */}
-        <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
+        <Surface className="flex flex-col gap-5 p-5 md:p-7">
           <div className="flex flex-wrap items-center justify-between gap-md">
             <div className="flex flex-wrap items-center gap-xs">
-              <span className="px-2.5 py-1 bg-surface-bright text-on-surface-variant text-xs font-semibold rounded-md border border-outline-variant uppercase tracking-wider">
-                {issue.category}
-              </span>
+              <CategoryLabel category={issue.category} />
               {issue.department?.name && (
-                <span className="px-2.5 py-1 bg-primary/10 text-primary text-xs font-medium rounded-md border border-primary/20 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">corporate_fare</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                  <Users size={14} />
                   {issue.department.name}
                 </span>
               )}
@@ -426,15 +432,13 @@ export default function IssueDetailPage() {
                 type="button"
                 disabled={followLoading}
                 onClick={handleToggleFollow}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border ${
+                className={`civic-focus inline-flex min-h-10 items-center gap-1.5 rounded-xl border px-4 text-xs font-bold transition-all ${
                   following
                     ? "bg-primary text-on-primary border-primary shadow-sm"
-                    : "bg-surface border-outline-variant text-on-surface-variant hover:border-primary/50"
+                    : "bg-[#fffefa] border-[#d8d6cf] text-on-surface-variant hover:border-primary/50"
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">
-                  {following ? "notifications_active" : "notifications"}
-                </span>
+                {following ? <BellRing size={18} /> : <Bell size={18} />}
                 <span>{following ? "Following" : "Follow Issue"}</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-[10px] ml-0.5">
                   {followerCount}
@@ -444,28 +448,28 @@ export default function IssueDetailPage() {
             </div>
           </div>
 
-          <h1 className="text-headline-lg font-headline-lg text-on-surface font-extrabold leading-tight">
+          <h1 className="max-w-4xl font-headline-lg text-headline-lg font-extrabold leading-tight tracking-[-0.04em] text-on-surface">
             {issue.title}
           </h1>
           {interactionError && <p role="alert" className="text-sm text-error">{interactionError}</p>}
 
-          <div className="flex flex-wrap items-center gap-md text-xs text-on-surface-variant border-t border-outline-variant/40 pt-sm">
+          <div className="flex flex-wrap items-center gap-4 border-t border-[#d8d6cf] pt-4 text-xs text-on-surface-variant">
             <div className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px]">schedule</span>
+              <Clock3 size={15} />
               <span>Reported on {new Date(issue.created_at).toLocaleDateString()}</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px]">pin_drop</span>
+              <MapPin size={15} />
               <span>Zone: {issue.zone}</span>
             </div>
             {issue.resolved_at && (
               <div className="flex items-center gap-1 text-emerald-600 font-medium">
-                <span className="material-symbols-outlined text-[16px]">task_alt</span>
+                <CheckCircle2 size={15} />
                 <span>Resolved on {new Date(issue.resolved_at).toLocaleDateString()}</span>
               </div>
             )}
           </div>
-        </div>
+        </Surface>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
@@ -473,7 +477,7 @@ export default function IssueDetailPage() {
           <div className="lg:col-span-8 flex flex-col gap-lg">
             {/* Before / After Evidence Image Container */}
             {(hasOriginalImage || hasResolutionImage) && (
-              <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl overflow-hidden shadow-md flex flex-col">
+              <Surface className="flex flex-col overflow-hidden">
                 {hasOriginalImage && hasResolutionImage && (
                   <div className="flex border-b border-outline-variant bg-surface-container">
                     <button
@@ -485,7 +489,7 @@ export default function IssueDetailPage() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                      <Camera size={18} />
                       Before (Reported)
                     </button>
                     <button
@@ -497,7 +501,7 @@ export default function IssueDetailPage() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">verified</span>
+                      <BadgeCheck size={18} />
                       After (Resolved)
                     </button>
                   </div>
@@ -524,35 +528,35 @@ export default function IssueDetailPage() {
                     />
                   )}
                 </div>
-              </div>
+              </Surface>
             )}
 
             {/* Description Card */}
-            <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-sm shadow-md">
+            <Surface className="flex flex-col gap-3 p-5 md:p-7">
               <h2 className="font-headline-md text-headline-md text-on-surface font-bold">Issue Description</h2>
               <p className="font-body-md text-body-md text-on-surface-variant whitespace-pre-wrap leading-relaxed">
                 {issue.description}
               </p>
-            </div>
+            </Surface>
 
             {/* Resolution Note Card (if present) */}
             {issue.resolution_note && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-md md:p-lg flex flex-col gap-sm">
+            <Surface className="flex flex-col gap-3 border-[#b9ddc1] bg-[#e8f4eb] p-5 md:p-7">
                 <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold font-headline-md">
-                  <span className="material-symbols-outlined">check_circle</span>
+                  <CheckCircle2 size={20} />
                   Resolution Note
                 </div>
                 <p className="text-body-md text-on-surface whitespace-pre-wrap leading-relaxed">
                   {issue.resolution_note}
                 </p>
-              </div>
+              </Surface>
             )}
 
             {/* Location & Mini Map Card */}
-            <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
+            <Surface className="flex flex-col gap-5 p-5 md:p-7">
               <div className="flex justify-between items-center">
                 <h2 className="font-headline-md text-headline-md text-on-surface font-bold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">location_on</span>
+                  <MapPin className="text-primary" size={20} />
                   Location Evidence
                 </h2>
                 <span className="text-xs text-on-surface-variant font-mono">
@@ -576,12 +580,12 @@ export default function IssueDetailPage() {
                   ]}
                 />
               </div>
-            </div>
+            </Surface>
 
             {/* Community Comments Section */}
-            <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
+            <Surface className="flex flex-col gap-5 p-5 md:p-7">
               <h2 className="font-headline-md text-headline-md text-on-surface font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">chat</span>
+                <MessageCircle className="text-primary" size={20} />
                 Public Discussion ({comments.length})
               </h2>
 
@@ -612,7 +616,7 @@ export default function IssueDetailPage() {
                             </span>
                             {isOfficial && (
                               <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[12px]">verified</span>
+                                <BadgeCheck size={12} />
                                 Official
                               </span>
                             )}
@@ -627,7 +631,7 @@ export default function IssueDetailPage() {
                                 className="text-error/70 hover:text-error transition-colors p-1"
                                 title="Delete comment"
                               >
-                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                                <Trash2 size={16} />
                               </button>
                             )}
                           </div>
@@ -663,21 +667,21 @@ export default function IssueDetailPage() {
                     className="bg-primary text-on-primary px-md py-2.5 rounded-xl font-label-md text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1 h-10 flex-shrink-0"
                   >
                     {submittingComment ? (
-                      <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                      <LoaderCircle className="animate-spin" size={16} />
                     ) : (
-                      <span className="material-symbols-outlined text-[16px]">send</span>
+                      <Send size={16} />
                     )}
                     <span>Post</span>
                   </button>
                 </div>
               </form>
-            </div>
+            </Surface>
           </div>
 
           {/* Right Column: Reactions, Timeline, Admin Actions */}
           <div className="lg:col-span-4 flex flex-col gap-lg">
             {/* Civic Reactions Widget */}
-            <div id="community-actions" className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md flex flex-col gap-md shadow-md scroll-mt-6">
+            <Surface id="community-actions" className="scroll-mt-6 flex flex-col gap-5 p-5">
               <h3 className="font-label-md text-label-md font-bold text-on-surface uppercase tracking-wider">
                 Community Confirmation
               </h3>
@@ -692,7 +696,7 @@ export default function IssueDetailPage() {
                       : "bg-surface border-outline-variant text-on-surface-variant hover:border-amber-500/50"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-xl">warning</span>
+                  <CircleAlert size={22} />
                   <span className="text-xs">I&apos;m Affected</span>
                   <span className="text-sm font-bold">{reactionSummary.affected}</span>
                 </button>
@@ -707,17 +711,17 @@ export default function IssueDetailPage() {
                       : "bg-surface border-outline-variant text-on-surface-variant hover:border-emerald-500/50"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-xl">verified</span>
+                  <BadgeCheck size={22} />
                   <span className="text-xs">I Can Confirm</span>
                   <span className="text-sm font-bold">{reactionSummary.confirmed}</span>
                 </button>
               </div>
-            </div>
+            </Surface>
 
             {/* Persistent Status History Timeline */}
-            <div className="glass-card bg-surface/60 border border-outline-variant rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md">
+            <Surface className="flex flex-col gap-5 p-5 md:p-7">
               <h3 className="font-headline-md text-headline-md text-on-surface font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">history</span>
+                <History className="text-primary" size={20} />
                 Lifecycle History
               </h3>
 
@@ -750,13 +754,13 @@ export default function IssueDetailPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </Surface>
 
             {/* Admin Management Panel (Only visible to Admin role) */}
             {role === "admin" && (
               <div id="admin-actions" className="bg-primary/5 border border-primary/20 rounded-2xl p-md md:p-lg flex flex-col gap-md shadow-md scroll-mt-6">
                 <div id="resolution" className="flex items-center gap-2 text-primary font-bold font-headline-md">
-                  <span className="material-symbols-outlined">admin_panel_settings</span>
+                  <ShieldCheck size={20} />
                   Admin Status Workflow
                 </div>
 
@@ -872,12 +876,12 @@ export default function IssueDetailPage() {
                   >
                     {updating ? (
                       <>
-                        <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                        <LoaderCircle className="animate-spin" size={16} />
                         Updating Status...
                       </>
                     ) : (
                       <>
-                        <span className="material-symbols-outlined text-[16px]">save</span>
+                        <Save size={16} />
                         Save Status Changes
                       </>
                     )}
