@@ -26,6 +26,7 @@ export default function ApprovalsPage() {
   const [metrics, setMetrics] = useState<AdminSummaryMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,7 +97,7 @@ export default function ApprovalsPage() {
     }
 
     if (role === "admin") {
-      fetchAdminData();
+      void Promise.resolve().then(fetchAdminData);
     }
   }, [role, authLoading, router, fetchAdminData]);
 
@@ -118,6 +119,7 @@ export default function ApprovalsPage() {
 
   // Handle Direct Status Change or trigger Modal for Duplicate/Reject or redirect for Resolved
   const handleStatusSelectChange = async (issue: ExtendedReport, newStatus: ReportStatus) => {
+    setActionError(null);
     if (newStatus === "Resolved") {
       router.push(`/issues/${issue.id}#admin-actions`);
       return;
@@ -131,7 +133,7 @@ export default function ApprovalsPage() {
         setDuplicateNote("Marked as duplicate issue");
         setDuplicateModalIssue(issue);
       } catch (err) {
-        alert("Failed to load candidate reports: " + (err instanceof Error ? err.message : "Error"));
+        setActionError(err instanceof Error ? err.message : "Failed to load duplicate candidates.");
       }
       return;
     }
@@ -152,7 +154,7 @@ export default function ApprovalsPage() {
       });
       await fetchAdminData();
     } catch (err) {
-      alert("Failed to update status: " + (err instanceof Error ? err.message : "Invalid transition"));
+      setActionError(err instanceof Error ? err.message : "Failed to update status.");
     } finally {
       setSubmittingAction(false);
     }
@@ -172,7 +174,7 @@ export default function ApprovalsPage() {
       setDuplicateModalIssue(null);
       await fetchAdminData();
     } catch (err) {
-      alert("Failed to mark duplicate: " + (err instanceof Error ? err.message : "Error"));
+      setActionError(err instanceof Error ? err.message : "Failed to mark the report as duplicate.");
     } finally {
       setSubmittingAction(false);
     }
@@ -191,7 +193,7 @@ export default function ApprovalsPage() {
       setRejectModalIssue(null);
       await fetchAdminData();
     } catch (err) {
-      alert("Failed to reject report: " + (err instanceof Error ? err.message : "Error"));
+      setActionError(err instanceof Error ? err.message : "Failed to reject the report.");
     } finally {
       setSubmittingAction(false);
     }
@@ -210,7 +212,7 @@ export default function ApprovalsPage() {
       });
       await fetchAdminData();
     } catch (err) {
-      alert("Failed to assign department: " + (err instanceof Error ? err.message : "Error"));
+      setActionError(err instanceof Error ? err.message : "Failed to update the department.");
     } finally {
       setSubmittingAction(false);
     }
@@ -274,6 +276,7 @@ export default function ApprovalsPage() {
             <p className="text-body-md text-on-surface-variant mt-1">
               Real-time oversight, department assignment, duplicate detection, and lifecycle management.
             </p>
+            {actionError && <p role="alert" className="mt-2 text-sm text-error">{actionError}</p>}
           </div>
 
           <button
@@ -380,7 +383,7 @@ export default function ApprovalsPage() {
                         <span className="text-on-surface-variant">Transition:</span>
                         <StatusBadge status={act.to_status as StatusType} />
                       </div>
-                      {act.note && <p className="text-on-surface-variant italic font-mono text-[11px]">"{act.note}"</p>}
+                      {act.note && <p className="text-on-surface-variant italic font-mono text-[11px]">&quot;{act.note}&quot;</p>}
                     </div>
                   ))
                 )}
@@ -526,7 +529,10 @@ export default function ApprovalsPage() {
               {/* Sort By */}
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "newest" || value === "oldest" || value === "most_affected") setSortBy(value);
+                }}
                 className="bg-surface px-3 py-1.5 rounded-xl border border-outline-variant text-on-surface text-xs focus:outline-none focus:border-primary cursor-pointer font-medium"
               >
                 <option value="newest">Newest First</option>
@@ -671,15 +677,17 @@ export default function ApprovalsPage() {
 
       {/* MODAL 1: Deliberate Duplicate Selection Workflow */}
       {duplicateModalIssue && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-md">
-          <div className="bg-surface border border-outline-variant rounded-2xl max-w-lg w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-md" role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby="duplicate-dialog-title" className="bg-surface border border-outline-variant rounded-2xl max-w-lg w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
             <div className="flex justify-between items-center border-b border-outline-variant pb-sm">
-              <h3 className="font-headline-md text-on-surface font-bold flex items-center gap-2 text-amber-600">
+              <h3 id="duplicate-dialog-title" className="font-headline-md text-on-surface font-bold flex items-center gap-2 text-amber-600">
                 <span className="material-symbols-outlined">content_copy</span>
                 Mark Report as Duplicate
               </h3>
               <button
+                type="button"
                 onClick={() => setDuplicateModalIssue(null)}
+                aria-label="Close duplicate report dialog"
                 className="text-on-surface-variant hover:text-on-surface p-1"
               >
                 <span className="material-symbols-outlined">close</span>
@@ -687,7 +695,7 @@ export default function ApprovalsPage() {
             </div>
 
             <p className="text-xs text-on-surface-variant">
-              Target report: <span className="font-bold text-on-surface">"{duplicateModalIssue.title}"</span>
+              Target report: <span className="font-bold text-on-surface">&quot;{duplicateModalIssue.title}&quot;</span>
             </p>
 
             <div className="flex flex-col gap-xs">
@@ -745,15 +753,17 @@ export default function ApprovalsPage() {
 
       {/* MODAL 2: Rejection Reason Workflow */}
       {rejectModalIssue && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-md">
-          <div className="bg-surface border border-outline-variant rounded-2xl max-w-lg w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-md" role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby="reject-dialog-title" className="bg-surface border border-outline-variant rounded-2xl max-w-lg w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
             <div className="flex justify-between items-center border-b border-outline-variant pb-sm">
-              <h3 className="font-headline-md text-on-surface font-bold flex items-center gap-2 text-error">
+              <h3 id="reject-dialog-title" className="font-headline-md text-on-surface font-bold flex items-center gap-2 text-error">
                 <span className="material-symbols-outlined">block</span>
                 Reject Report
               </h3>
               <button
+                type="button"
                 onClick={() => setRejectModalIssue(null)}
+                aria-label="Close reject report dialog"
                 className="text-on-surface-variant hover:text-on-surface p-1"
               >
                 <span className="material-symbols-outlined">close</span>
@@ -761,7 +771,7 @@ export default function ApprovalsPage() {
             </div>
 
             <p className="text-xs text-on-surface-variant">
-              Target report: <span className="font-bold text-on-surface">"{rejectModalIssue.title}"</span>
+              Target report: <span className="font-bold text-on-surface">&quot;{rejectModalIssue.title}&quot;</span>
             </p>
 
             <div className="flex flex-col gap-xs">

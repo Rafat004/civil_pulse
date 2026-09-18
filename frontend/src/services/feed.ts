@@ -61,8 +61,8 @@ export async function getPublicFeed(
 
   if (sort === "Most Affected") {
     reports.sort((a, b) => {
-      const countA = (a as any).affected_count || 0;
-      const countB = (b as any).affected_count || 0;
+      const countA = a.affected_count || 0;
+      const countB = b.affected_count || 0;
       if (countB !== countA) {
         return countB - countA;
       }

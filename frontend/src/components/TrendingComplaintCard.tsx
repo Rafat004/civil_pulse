@@ -35,13 +35,14 @@ export default function TrendingComplaintCard({
   const [affectedCount, setAffectedCount] = useState(initialAffectedCount);
   const [confirmedCount, setConfirmedCount] = useState(initialConfirmedCount);
   const [hasAffected, setHasAffected] = useState(false);
+  const [reactionError, setReactionError] = useState<string | null>(null);
 
   useEffect(() => {
-    setAffectedCount(initialAffectedCount);
+    queueMicrotask(() => setAffectedCount(initialAffectedCount));
   }, [initialAffectedCount]);
 
   useEffect(() => {
-    setConfirmedCount(initialConfirmedCount);
+    queueMicrotask(() => setConfirmedCount(initialConfirmedCount));
   }, [initialConfirmedCount]);
 
   useEffect(() => {
@@ -68,9 +69,10 @@ export default function TrendingComplaintCard({
   const handleAffectedToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
-      alert("You must be logged in to react.");
+      setReactionError("Log in to mark this report as affected.");
       return;
     }
+    setReactionError(null);
 
     const newActive = !hasAffected;
     setHasAffected(newActive);
@@ -79,7 +81,7 @@ export default function TrendingComplaintCard({
     try {
       await setReaction(id, user.id, "affected", newActive);
     } catch (err) {
-      console.error("Failed to update reaction:", err);
+      setReactionError(err instanceof Error ? err.message : "Unable to save your reaction.");
       // Revert optimistic update
       setHasAffected(!newActive);
       setAffectedCount((prev) => (newActive ? Math.max(0, prev - 1) : prev + 1));
@@ -111,6 +113,7 @@ export default function TrendingComplaintCard({
 
       {/* Content */}
       <div className="flex-grow flex flex-col gap-sm">
+        {reactionError && <p role="alert" className="text-xs text-error">{reactionError}</p>}
         <div className="flex justify-between items-start">
           <div>
             <span className="inline-block px-2 py-1 bg-surface-bright text-on-surface-variant font-caption text-caption rounded text-xs mb-1 uppercase tracking-wider border border-outline-variant">

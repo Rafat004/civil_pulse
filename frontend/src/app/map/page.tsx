@@ -93,9 +93,9 @@ export default function MapView() {
             setAffectedCounts(counts);
           }
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to load map data:', err);
-        setError(err.message || 'Failed to load map reports.');
+        setError(err instanceof Error ? err.message : 'Failed to load map reports.');
       } finally {
         setLoading(false);
       }
@@ -186,6 +186,7 @@ export default function MapView() {
               <button
                 type="button"
                 onClick={() => setShowLegend(!showLegend)}
+                aria-label="Toggle map legend"
                 className={`p-1.5 rounded-lg text-xs font-label-md flex items-center gap-1 transition-colors ${
                   showLegend ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-variant'
                 }`}
@@ -198,6 +199,7 @@ export default function MapView() {
               <button
                 type="button"
                 onClick={() => setShowControlsMobile(!showControlsMobile)}
+                aria-label="Toggle map filters"
                 className="md:hidden p-1.5 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-colors"
                 title="Toggle Filter Controls"
               >
@@ -225,6 +227,7 @@ export default function MapView() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
+                  aria-label="Clear map search"
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
                 >
                   <span className="material-symbols-outlined text-[14px]">close</span>
@@ -342,6 +345,17 @@ export default function MapView() {
           onUserLocationError={(msg) => setLocationError(msg)}
         />
       </div>
+
+      {loading && (
+        <div role="status" className="absolute inset-0 z-[900] flex items-center justify-center bg-surface/40 pointer-events-none">
+          <span className="rounded-full bg-surface-container px-4 py-2 text-sm text-on-surface shadow-lg">Loading reports…</span>
+        </div>
+      )}
+      {error && (
+        <div role="alert" className="absolute top-4 right-4 z-[1000] max-w-sm rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error shadow-lg">
+          {error}
+        </div>
+      )}
 
       {/* Geolocation feedback notification */}
       {locationError && (

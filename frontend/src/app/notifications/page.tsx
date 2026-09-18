@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -18,11 +18,11 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const fetchNotificationsData = async () => {
+  const fetchNotificationsData = useCallback(async () => {
     if (!user) return;
     try {
-      setLoading(true);
       const data = await getNotifications(user.id);
       setNotifications(data);
       setError(null);
@@ -31,7 +31,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,9 +40,9 @@ export default function NotificationsPage() {
     }
 
     if (user) {
-      fetchNotificationsData();
+      void Promise.resolve().then(fetchNotificationsData);
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, fetchNotificationsData]);
 
   // Realtime subscription for notifications
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function NotificationsPage() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          fetchNotificationsData();
+          void fetchNotificationsData();
         }
       )
       .subscribe();
@@ -67,29 +67,31 @@ export default function NotificationsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, fetchNotificationsData]);
 
   const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    setActionError(null);
     try {
       await markNotificationAsRead(id);
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
       );
     } catch (err) {
-      console.error("Failed to mark notification read:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to mark the notification as read.");
     }
   };
 
   const handleMarkAllAsRead = async () => {
     if (!user) return;
+    setActionError(null);
     try {
       await markAllNotificationsAsRead(user.id);
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
       );
     } catch (err) {
-      alert("Failed to mark all as read: " + (err instanceof Error ? err.message : "Unknown error"));
+      setActionError(err instanceof Error ? err.message : "Failed to mark all notifications as read.");
     }
   };
 
@@ -149,6 +151,12 @@ export default function NotificationsPage() {
             </button>
           )}
         </div>
+
+        {actionError && (
+          <div role="alert" className="bg-error/10 border border-error/20 p-sm rounded-xl text-error text-sm">
+            {actionError}
+          </div>
+        )}
 
         {/* Notifications List */}
         {error ? (

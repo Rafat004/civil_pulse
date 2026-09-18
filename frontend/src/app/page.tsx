@@ -33,7 +33,7 @@ export default function Home() {
   }, [sortOption, selectedCategory]);
 
   useEffect(() => {
-    loadFeed();
+    void Promise.resolve().then(loadFeed);
   }, [loadFeed]);
 
   // Realtime updates for reports and reactions on homepage
@@ -83,7 +83,7 @@ export default function Home() {
               </span>
             </div>
             <h1 className="font-display-md md:text-headline-lg font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary via-tertiary to-secondary">
-              See what's broken. See it get fixed.
+              See what&apos;s broken. See it get fixed.
             </h1>
             <p className="font-body-md text-on-surface-variant max-w-xl mt-2 text-sm md:text-base">
               Transparent digital infrastructure connecting citizens directly to municipal resolution teams.
@@ -179,8 +179,8 @@ export default function Home() {
                 description={report.description}
                 zone={report.zone}
                 status={report.status}
-                affectedCount={(report as any).affected_count || 0}
-                confirmedCount={(report as any).confirmed_count || 0}
+                affectedCount={report.affected_count || 0}
+                confirmedCount={report.confirmed_count || 0}
                 imageUrl={report.image_url || undefined}
               />
             ))}

@@ -46,9 +46,10 @@ export interface Report {
   resolution_note?: string | null;
   resolution_image_url?: string | null;
   resolved_at?: string | null;
+  affected_count?: number;
+  confirmed_count?: number;
   created_at: string;
   updated_at?: string;
-  upvotes_count?: number;
 }
 
 export interface ReportReaction {
@@ -98,5 +99,3 @@ export type MapReport = Pick<
   Report,
   "id" | "title" | "status" | "lat" | "lng" | "image_url"
 >;
-
-

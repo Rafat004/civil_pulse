@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import StatusBadge from "@/components/StatusBadge";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
-import { REPORT_STATUSES, getValidNextStatuses } from "@/lib/constants";
+import { getValidNextStatuses } from "@/lib/constants";
 import {
   changeReportStatus,
   getDepartments,
@@ -26,7 +26,6 @@ const MapComponent = dynamic(() => import("@/components/MapComponent"), { ssr: f
 
 export default function IssueDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params?.id as string;
   const { user, role } = useAuth();
 
@@ -69,6 +68,7 @@ export default function IssueDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
+  const [interactionError, setInteractionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (adminStatus === "Duplicate" && id) {
@@ -125,7 +125,7 @@ export default function IssueDetailPage() {
   };
 
   useEffect(() => {
-    fetchIssueData();
+    void Promise.resolve().then(fetchIssueData);
   }, [id, user?.id]);
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function IssueDetailPage() {
       const hash = window.location.hash;
       if (hash === "#admin-actions" || hash === "#resolution") {
         if (getValidNextStatuses(issue.status).includes("Resolved")) {
-          setAdminStatus("Resolved");
+          queueMicrotask(() => setAdminStatus("Resolved"));
         }
       }
     }
@@ -183,8 +183,9 @@ export default function IssueDetailPage() {
   }, [id, user?.id]);
 
   const handleToggleFollow = async () => {
+    setInteractionError(null);
     if (!user) {
-      alert("Please sign in to follow this issue.");
+      setInteractionError("Please sign in to follow this issue.");
       return;
     }
     setFollowLoading(true);
@@ -201,7 +202,7 @@ export default function IssueDetailPage() {
       const refreshedCount = await getFollowerCount(id);
       setFollowerCount(refreshedCount);
     } catch (err) {
-      console.error("Failed to update follow state:", err);
+      setInteractionError(err instanceof Error ? err.message : "Failed to update follow state.");
       // Revert optimistic update
       setFollowing(!newFollowing);
       setFollowerCount((prev) => (newFollowing ? Math.max(0, prev - 1) : prev + 1));
@@ -211,8 +212,9 @@ export default function IssueDetailPage() {
   };
 
   const handleToggleReaction = async (type: "affected" | "confirmed") => {
+    setInteractionError(null);
     if (!user) {
-      alert("Please sign in to react to this issue.");
+      setInteractionError("Please sign in to react to this issue.");
       return;
     }
     setReactionLoading(true);
@@ -232,7 +234,7 @@ export default function IssueDetailPage() {
     try {
       await setReaction(id, user.id, type, newActive);
     } catch (err) {
-      console.error("Failed to update reaction:", err);
+      setInteractionError(err instanceof Error ? err.message : "Failed to update reaction.");
       // Revert on error
       setReactionSummary((prev) => ({
         ...prev,
@@ -250,7 +252,7 @@ export default function IssueDetailPage() {
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      alert("Please sign in to comment.");
+      setCommentError("Please sign in to comment.");
       return;
     }
     if (!newCommentText.trim()) return;
@@ -276,7 +278,7 @@ export default function IssueDetailPage() {
       await deleteComment(commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
-      alert("Failed to delete comment: " + (err instanceof Error ? err.message : "Unknown error"));
+      setCommentError(err instanceof Error ? err.message : "Failed to delete comment.");
     }
   };
 
@@ -445,6 +447,7 @@ export default function IssueDetailPage() {
           <h1 className="text-headline-lg font-headline-lg text-on-surface font-extrabold leading-tight">
             {issue.title}
           </h1>
+          {interactionError && <p role="alert" className="text-sm text-error">{interactionError}</p>}
 
           <div className="flex flex-wrap items-center gap-md text-xs text-on-surface-variant border-t border-outline-variant/40 pt-sm">
             <div className="flex items-center gap-1">
@@ -690,7 +693,7 @@ export default function IssueDetailPage() {
                   }`}
                 >
                   <span className="material-symbols-outlined text-xl">warning</span>
-                  <span className="text-xs">I'm Affected</span>
+                  <span className="text-xs">I&apos;m Affected</span>
                   <span className="text-sm font-bold">{reactionSummary.affected}</span>
                 </button>
 
@@ -732,7 +735,7 @@ export default function IssueDetailPage() {
                       </div>
                       {item.note && (
                         <p className="text-xs text-on-surface-variant italic mt-0.5">
-                          "{item.note}"
+                          &quot;{item.note}&quot;
                         </p>
                       )}
                     </div>

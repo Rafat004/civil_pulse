@@ -585,10 +585,10 @@ React state may mirror database state for interaction.
 
 It must not replace persistence.
 
-Bad:
+Bad (the removed legacy behavior):
 
 ```text
-User clicks upvote
+User marks a report as affected or confirmed
 → React counter increases
 → no database write
 ```
@@ -718,7 +718,7 @@ A user may use both.
 
 A user must not repeatedly add the same reaction to the same report.
 
-Generic likes/upvotes should not remain as a parallel long-term interaction model.
+The legacy upvote model has been removed. Persistent civic interaction uses only `affected` and `confirmed` reactions.
 
 ---
 

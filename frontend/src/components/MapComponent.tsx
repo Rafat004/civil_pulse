@@ -8,11 +8,13 @@ import { getStatusColor, getCategoryIconSymbol } from '@/lib/mapUtils';
 
 export { getStatusColor, getCategoryIconSymbol };
 
-const L = typeof window !== 'undefined' ? require('leaflet') : null;
+// Leaflet is only used after the component is mounted in the browser.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const L: typeof import('leaflet') | null = typeof window !== 'undefined' ? require('leaflet') : null;
 
 // Create category + status visually distinct DivIcon
 function createMarkerIcon(category?: string, status?: string) {
-  if (typeof window === 'undefined') return undefined as any;
+  if (!L || typeof window === 'undefined') return undefined;
   const iconSymbol = getCategoryIconSymbol(category);
   const statusColor = getStatusColor(status);
 
@@ -55,7 +57,7 @@ function createMarkerIcon(category?: string, status?: string) {
 
 // Distinct pin icon for selected report location
 function createSelectedLocationIcon() {
-  if (typeof window === 'undefined') return undefined as any;
+  if (!L || typeof window === 'undefined') return undefined;
   return L.divIcon({
     className: 'custom-selected-marker',
     html: `
@@ -84,7 +86,7 @@ function createSelectedLocationIcon() {
 
 // Distinct icon for User Location (pulsing blue dot)
 function createUserLocationIcon() {
-  if (typeof window === 'undefined') return undefined as any;
+  if (!L || typeof window === 'undefined') return undefined;
   return L.divIcon({
     className: 'custom-user-marker',
     html: `
@@ -160,7 +162,7 @@ export default function MapComponent({
   onUserLocationFound,
   onUserLocationError
 }: MapComponentProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = typeof window !== 'undefined';
   const [mapKey] = useState(() => `${mapId}-${Math.random().toString(36).substring(2, 9)}`);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
@@ -184,16 +186,15 @@ export default function MapComponent({
   const [mapCenter, setMapCenter] = useState<[number, number]>(initialCenter);
 
   useEffect(() => {
-    setMounted(true);
     const container = document.getElementById(mapKey);
     if (container) {
-      // @ts-ignore
+      // @ts-expect-error Leaflet stores its internal id on the DOM node.
       container._leaflet_id = null;
     }
     return () => {
       const el = document.getElementById(mapKey);
       if (el) {
-        // @ts-ignore
+        // @ts-expect-error Leaflet stores its internal id on the DOM node.
         el._leaflet_id = null;
       }
     };
@@ -201,11 +202,11 @@ export default function MapComponent({
 
   useEffect(() => {
     if (userLocation) {
-      setMapCenter([userLocation.lat, userLocation.lng]);
+      queueMicrotask(() => setMapCenter([userLocation.lat, userLocation.lng]));
     } else if (selectedLocation) {
-      setMapCenter([selectedLocation.lat, selectedLocation.lng]);
+      queueMicrotask(() => setMapCenter([selectedLocation.lat, selectedLocation.lng]));
     } else if (markers.length > 0) {
-      setMapCenter([markers[0].lat, markers[0].lng]);
+      queueMicrotask(() => setMapCenter([markers[0].lat, markers[0].lng]));
     }
   }, [userLocation?.lat, userLocation?.lng, selectedLocation?.lat, selectedLocation?.lng, markers.length]);
 

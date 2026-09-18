@@ -9,7 +9,6 @@ DROP TABLE IF EXISTS public.report_followers CASCADE;
 DROP TABLE IF EXISTS public.comments CASCADE;
 DROP TABLE IF EXISTS public.report_status_history CASCADE;
 DROP TABLE IF EXISTS public.report_reactions CASCADE;
-DROP TABLE IF EXISTS public.upvotes CASCADE;
 DROP TABLE IF EXISTS public.reports CASCADE;
 DROP TABLE IF EXISTS public.departments CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
@@ -110,7 +109,6 @@ CREATE TABLE IF NOT EXISTS public.reports (
     lat DOUBLE PRECISION NOT NULL,
     lng DOUBLE PRECISION NOT NULL,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    upvotes_count INTEGER NOT NULL DEFAULT 0,
     image_url TEXT,
     department_id UUID REFERENCES public.departments(id) ON DELETE SET NULL,
     duplicate_of UUID REFERENCES public.reports(id) ON DELETE SET NULL,
@@ -175,7 +173,6 @@ BEGIN
     NEW.resolution_note := NULL;
     NEW.resolution_image_url := NULL;
     NEW.resolved_at := NULL;
-    NEW.upvotes_count := 0;
     NEW.user_id := COALESCE(auth.uid(), NEW.user_id);
     NEW.created_at := NOW();
     NEW.updated_at := NOW();

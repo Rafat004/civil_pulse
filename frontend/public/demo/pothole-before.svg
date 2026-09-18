@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Road before repair</title>
+  <desc id="desc">A simple illustration of a pothole on a city road.</desc>
+  <rect width="1200" height="800" fill="#dce8ef"/>
+  <rect y="430" width="1200" height="370" fill="#556270"/>
+  <path d="M0 560h1200" stroke="#f4d06f" stroke-width="12" stroke-dasharray="64 44"/>
+  <ellipse cx="670" cy="610" rx="230" ry="78" fill="#252d36"/>
+  <ellipse cx="670" cy="598" rx="170" ry="46" fill="#121820"/>
+  <path d="M80 430 210 260h180l130 170M930 430 1030 250h110l80 180" fill="#8aa0aa" opacity=".7"/>
+  <text x="60" y="100" fill="#14253a" font-family="sans-serif" font-size="44" font-weight="700">BEFORE REPAIR</text>
+</svg>

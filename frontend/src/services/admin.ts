@@ -93,15 +93,21 @@ export async function getAdminSummaryMetrics(): Promise<AdminSummaryMetrics> {
 
   if (historyError) throw historyError;
 
-  const recentActivity = (historyData || []).map((h: any) => ({
-    id: h.id,
-    report_id: h.report_id,
-    title: h.report?.title || "Report #" + h.report_id.slice(0, 6),
-    from_status: h.from_status,
-    to_status: h.to_status,
-    note: h.note,
-    created_at: h.created_at,
-  }));
+  const recentActivity = (historyData || []).map((h) => {
+    const activity = h as unknown as {
+      id: string; report_id: string; from_status: string | null; to_status: string;
+      note: string | null; created_at: string; report?: { title?: string } | null;
+    };
+    return {
+      id: activity.id,
+      report_id: activity.report_id,
+      title: activity.report?.title || "Report #" + activity.report_id.slice(0, 6),
+      from_status: activity.from_status,
+      to_status: activity.to_status,
+      note: activity.note,
+      created_at: activity.created_at,
+    };
+  });
 
   return {
     totalOpen,

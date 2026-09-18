@@ -63,7 +63,7 @@ report_followers
 notifications
 ```
 
-Current `upvotes` functionality should eventually be replaced by `report_reactions`.
+The former `upvotes` model has been replaced by `report_reactions`.
 
 ---
 
@@ -614,34 +614,9 @@ If cached counters are introduced later, they must be maintained through trusted
 
 ---
 
-# 21. Existing `upvotes`
+# 21. Legacy `upvotes`
 
-The current schema includes:
-
-```text
-upvotes
-```
-
-and:
-
-```text
-reports.upvotes_count
-```
-
-Target direction:
-
-```text
-upvotes
-   ↓
-report_reactions
-```
-
-For the local project, old development upvote data may be:
-
-* migrated to `affected`; or
-* discarded during a clean development reset.
-
-Do not maintain both systems permanently.
+The legacy `upvotes` table and `reports.upvotes_count` column were removed by the Phase 7 cleanup migration. Civic interaction is represented only by `report_reactions` with the documented `affected` and `confirmed` types.
 
 ---
 
@@ -1222,29 +1197,19 @@ The frontend should not require privileged storage credentials.
 
 # 46. Current Schema
 
-The existing project currently includes:
+The current project includes:
 
 ```text
 profiles
 reports
-upvotes
+report_reactions
 ```
 
 The existing `reports` table already contains core fields such as:
 
 ```text
-id
-title
-description
-category
-status
-zone
-lat
-lng
-user_id
-upvotes_count
-image_url
-created_at
+id, title, description, category, status, zone, lat, lng, user_id,
+image_url, department_id, duplicate_of, resolution fields, and timestamps
 ```
 
 The target schema should evolve from this existing structure rather than treating the project as greenfield.
@@ -1267,8 +1232,8 @@ reports
     → add resolution fields
     → add updated_at
 
-upvotes
-    → replace with report_reactions
+report_reactions
+    → persistent affected/confirmed civic reactions
 
 new:
     departments

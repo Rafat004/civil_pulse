@@ -1,23 +1,31 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { getUnreadNotificationCount } from "@/services/notifications";
 
 export default function TopNavBar() {
   const { user, role, signOut } = useAuth();
+  const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   // Extract name for Avatar
   const fullName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
   const initial = fullName.charAt(0).toUpperCase();
 
-  const glassTabClass =
-    "flex items-center text-on-surface-variant hover:text-on-surface font-label-md text-label-md backdrop-blur-md bg-[#E2DFD0]/10 hover:bg-[#E2DFD0]/30 border border-[#E2DFD0]/30 rounded-full px-5 py-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_4px_15px_rgba(226,223,208,0.2)]";
+  const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const glassTabClass = (href: string) =>
+    `flex items-center font-label-md text-label-md backdrop-blur-md border rounded-full px-5 py-2 transition-colors duration-200 ${
+      isActive(href)
+        ? "text-primary bg-primary/10 border-primary/30"
+        : "text-on-surface-variant hover:text-on-surface bg-[#E2DFD0]/10 hover:bg-[#E2DFD0]/30 border-[#E2DFD0]/30"
+    }`;
 
-  const fetchUnread = async () => {
+  const fetchUnread = useCallback(async () => {
     if (!user) return;
     try {
       const count = await getUnreadNotificationCount(user.id);
@@ -25,11 +33,11 @@ export default function TopNavBar() {
     } catch (err) {
       console.error("Failed to fetch unread notification count:", err);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    fetchUnread();
-  }, [user]);
+    void Promise.resolve().then(fetchUnread);
+  }, [fetchUnread]);
 
   // Realtime subscription for unread notifications count
   useEffect(() => {
@@ -46,7 +54,7 @@ export default function TopNavBar() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          fetchUnread();
+          void fetchUnread();
         }
       )
       .subscribe();
@@ -54,7 +62,16 @@ export default function TopNavBar() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [fetchUnread, user]);
+
+  const handleSignOut = async () => {
+    setSignOutError(null);
+    try {
+      await signOut();
+    } catch (error) {
+      setSignOutError(error instanceof Error ? error.message : "Unable to sign out. Please try again.");
+    }
+  };
 
   return (
     <nav className="bg-surface/60 backdrop-blur-xl border-b border-white/10 dark:border-white/5 w-full sticky top-0 z-50 shadow-sm">
@@ -67,23 +84,23 @@ export default function TopNavBar() {
         <div className="hidden md:flex gap-4 items-center">
           {role === 'admin' ? (
             <>
-              <Link href="/map" className={glassTabClass}>
+              <Link href="/map" className={glassTabClass("/map")} aria-current={isActive("/map") ? "page" : undefined}>
                 Map
               </Link>
-              <Link href="/approvals" className={glassTabClass}>
+              <Link href="/approvals" className={glassTabClass("/approvals")} aria-current={isActive("/approvals") ? "page" : undefined}>
                 Approvals
               </Link>
             </>
           ) : (
             <>
-              <Link href="/" className={glassTabClass}>
+              <Link href="/" className={glassTabClass("/")} aria-current={isActive("/") ? "page" : undefined}>
                 Dashboard
               </Link>
-              <Link href="/map" className={glassTabClass}>
+              <Link href="/map" className={glassTabClass("/map")} aria-current={isActive("/map") ? "page" : undefined}>
                 Map
               </Link>
               {user && (
-                <Link href="/my-reports" className={glassTabClass}>
+                <Link href="/my-reports" className={glassTabClass("/my-reports")} aria-current={isActive("/my-reports") ? "page" : undefined}>
                   My Reports
                 </Link>
               )}
@@ -113,6 +130,7 @@ export default function TopNavBar() {
                   href="/notifications"
                   className="relative p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-variant/40"
                   title="Notifications"
+                  aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
                 >
                   <span className="material-symbols-outlined text-2xl">notifications</span>
                   {unreadCount > 0 && (
@@ -133,13 +151,14 @@ export default function TopNavBar() {
                 </div>
 
                 <button 
-                  onClick={signOut}
+                  onClick={() => void handleSignOut()}
                   className="flex items-center justify-center text-on-surface-variant hover:text-error transition-colors duration-200 px-sm py-sm rounded-lg hover:bg-error/10 font-label-md text-sm"
                 >
                   <span className="material-symbols-outlined mr-1 text-[18px]">logout</span>
                   Sign Out
                 </button>
               </div>
+              {signOutError && <span role="alert" className="sr-only">{signOutError}</span>}
             </>
           ) : (
             <div className="flex gap-sm">

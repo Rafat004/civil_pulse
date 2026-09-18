@@ -45,7 +45,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>(REPORT_CATEGORIES[0]);
-  const [zone, setZone] = useState('General');
+  const zone = 'General';
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -91,12 +91,12 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
     [title, description, category, location],
   );
 
-  useEffect(() => {
+  const resetDuplicateReview = () => {
     duplicateRequest.current?.abort();
     setDuplicateCandidates([]);
     setReviewedDraftKey(null);
     setIntelligenceNotice(null);
-  }, [draftKey]);
+  };
 
   useEffect(() => () => duplicateRequest.current?.abort(), []);
 
@@ -210,18 +210,18 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-      <div className="bg-surface-container rounded-2xl w-[90%] max-w-[800px] max-h-[90vh] overflow-y-auto border border-outline-variant shadow-2xl flex flex-col">
+    <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4" role="presentation">
+      <div role="dialog" aria-modal="true" aria-labelledby="new-report-title" className="bg-surface-container rounded-2xl w-[90%] max-w-[800px] max-h-[90vh] overflow-y-auto border border-outline-variant shadow-2xl flex flex-col">
         <div className="p-md border-b border-outline-variant flex justify-between items-center sticky top-0 bg-surface-container z-10">
-          <h2 className="text-headline-md font-headline-md text-on-surface">Report a Civic Issue</h2>
-          <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface transition-colors">
+          <h2 id="new-report-title" className="text-headline-md font-headline-md text-on-surface">Report a Civic Issue</h2>
+          <button type="button" onClick={onClose} aria-label="Close report form" className="text-on-surface-variant hover:text-on-surface transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-md flex flex-col gap-lg">
           {error && (
-            <div className="bg-error/10 text-error p-sm rounded-lg border border-error/20 font-body-md text-sm">
+            <div role="alert" className="bg-error/10 text-error p-sm rounded-lg border border-error/20 font-body-md text-sm">
               {error}
             </div>
           )}
@@ -232,7 +232,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
               <input
                 required
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={e => { resetDuplicateReview(); setTitle(e.target.value); }}
                 className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors"
                 placeholder="E.g., Deep Pothole on 5th Ave"
               />
@@ -242,7 +242,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
               <label className="text-label-md font-label-md text-on-surface-variant">Category</label>
               <select
                 value={category}
-                onChange={e => setCategory(e.target.value)}
+                onChange={e => { resetDuplicateReview(); setCategory(e.target.value); }}
                 className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors"
               >
                 {REPORT_CATEGORIES.map((cat) => (
@@ -254,7 +254,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
               <SmartSuggestion
                 title={title}
                 description={description}
-                onApply={setCategory}
+                onApply={(value) => { resetDuplicateReview(); setCategory(value); }}
               />
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
               required
               rows={3}
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={e => { resetDuplicateReview(); setDescription(e.target.value); }}
               className="bg-surface p-sm rounded-lg border border-outline-variant text-on-surface focus:outline-none focus:border-primary transition-colors resize-none"
               placeholder="Provide details about the issue..."
             />
@@ -287,11 +287,11 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
               <MapComponent
                 mapId="modal-map"
                 interactive={true}
-                onMapClick={(lat, lng) => setLocation({ lat, lng })}
+                onMapClick={(lat, lng) => { resetDuplicateReview(); setLocation({ lat, lng }); }}
                 selectedLocation={location}
                 showSearch={true}
                 showUserLocationButton={true}
-                onUserLocationFound={(lat, lng) => setLocation({ lat, lng })}
+                onUserLocationFound={(lat, lng) => { resetDuplicateReview(); setLocation({ lat, lng }); }}
               />
             </div>
           </div>
@@ -338,7 +338,7 @@ export default function NewReportModal({ onClose }: NewReportModalProps) {
           )}
 
           {intelligenceNotice && (
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
+            <div role="status" className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
               {intelligenceNotice}
             </div>
           )}

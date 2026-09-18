@@ -28,6 +28,7 @@ export default function MyReportCard({
   const [editTitle, setEditTitle] = useState(title);
   const [editDesc, setEditDesc] = useState(description);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!isReported) {
@@ -35,6 +36,7 @@ export default function MyReportCard({
       return;
     }
     setSaving(true);
+    setSaveError(null);
     const { error } = await supabase
       .from('reports')
       .update({ title: editTitle, description: editDesc })
@@ -45,7 +47,7 @@ export default function MyReportCard({
       setCurrentDesc(editDesc);
       setIsEditing(false);
     } else {
-      console.error("Failed to update report:", error);
+      setSaveError(error.message || "Failed to update the report. Please try again.");
     }
     setSaving(false);
   };
@@ -81,6 +83,7 @@ export default function MyReportCard({
         ) : (
           <p className="font-body-md text-body-md text-on-surface-variant line-clamp-2">{currentDesc}</p>
         )}
+        {saveError && <p role="alert" className="text-sm text-error">{saveError}</p>}
         
         {/* Timeline Component Mock */}
         <div className={`mt-md relative flex items-center justify-between w-full md:w-3/4 before:absolute before:inset-0 before:ml-[14px] before:mr-[14px] before:-translate-y-1/2 before:h-0.5 before:top-1/2 before:z-0 ${isResolved ? 'before:bg-secondary' : 'before:bg-[#334155]'}`}>
@@ -125,7 +128,7 @@ export default function MyReportCard({
         <div className="flex items-center gap-2">
           {isReported && isEditing && (
             <div className="flex gap-2">
-              <button onClick={() => setIsEditing(false)} className="bg-transparent border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+              <button onClick={() => { setIsEditing(false); setSaveError(null); }} disabled={saving} className="bg-transparent border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                 Cancel
               </button>
               <button onClick={handleSave} disabled={saving} className="bg-primary text-on-primary font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50">
@@ -150,4 +153,3 @@ export default function MyReportCard({
     </div>
   );
 }
-

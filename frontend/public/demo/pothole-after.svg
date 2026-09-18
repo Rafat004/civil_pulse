@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Road after repair</title>
+  <desc id="desc">A simple illustration of a freshly repaired city road.</desc>
+  <rect width="1200" height="800" fill="#dcefe2"/>
+  <rect y="430" width="1200" height="370" fill="#3f4e59"/>
+  <path d="M0 560h1200" stroke="#f4d06f" stroke-width="12" stroke-dasharray="64 44"/>
+  <rect x="470" y="560" width="400" height="100" rx="50" fill="#697984"/>
+  <path d="m560 600 55 55 115-130" fill="none" stroke="#bcedd8" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80 430 210 260h180l130 170M930 430 1030 250h110l80 180" fill="#91b3a0" opacity=".8"/>
+  <text x="60" y="100" fill="#214f3c" font-family="sans-serif" font-size="44" font-weight="700">AFTER REPAIR</text>
+</svg>
