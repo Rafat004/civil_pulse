@@ -48,6 +48,11 @@ export interface Report {
   resolved_at?: string | null;
   affected_count?: number;
   confirmed_count?: number;
+  comment_count?: number;
+  reporter_name?: string | null;
+  reporter_role?: UserRole | null;
+  latest_update_note?: string | null;
+  latest_update_at?: string | null;
   created_at: string;
   updated_at?: string;
 }
