@@ -613,7 +613,7 @@ export default function ApprovalsPage() {
       {/* MODAL 1: Deliberate Duplicate Selection Workflow */}
       {duplicateModalIssue && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-md" role="presentation">
-          <div role="dialog" aria-modal="true" aria-labelledby="duplicate-dialog-title" className="bg-surface border border-outline-variant rounded-2xl max-w-lg w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-labelledby="duplicate-dialog-title" className="bg-surface border border-outline-variant rounded-2xl max-w-[32rem] w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
             <div className="flex justify-between items-center border-b border-outline-variant pb-sm">
               <h3 id="duplicate-dialog-title" className="font-headline-md text-on-surface font-bold flex items-center gap-2 text-amber-600">
                 <Copy size={20} />
@@ -689,7 +689,7 @@ export default function ApprovalsPage() {
       {/* MODAL 2: Rejection Reason Workflow */}
       {rejectModalIssue && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-md" role="presentation">
-          <div role="dialog" aria-modal="true" aria-labelledby="reject-dialog-title" className="bg-surface border border-outline-variant rounded-2xl max-w-lg w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-labelledby="reject-dialog-title" className="bg-surface border border-outline-variant rounded-2xl max-w-[32rem] w-full p-md md:p-lg flex flex-col gap-md shadow-2xl">
             <div className="flex justify-between items-center border-b border-outline-variant pb-sm">
               <h3 id="reject-dialog-title" className="font-headline-md text-on-surface font-bold flex items-center gap-2 text-error">
                 <Ban size={20} />

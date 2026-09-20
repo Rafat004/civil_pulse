@@ -369,7 +369,7 @@ export default function IssueDetailPage() {
   if (error || !issue) {
     return (
       <main className="civic-page flex items-center justify-center">
-        <div className="civic-container flex max-w-xl flex-col items-center gap-4 py-20 text-center">
+        <div className="civic-container flex max-w-[36rem] flex-col items-center gap-4 py-20 text-center">
           <CircleAlert className="text-[#a13a32]" size={34} />
           <div className="font-headline-md font-bold text-on-surface">{error || "Issue not found"}</div>
           <Link href="/" className="civic-focus inline-flex min-h-11 items-center rounded-xl bg-primary px-5 text-sm font-bold text-on-primary">

@@ -84,7 +84,7 @@ export function PageHeader({
       <div className="max-w-2xl">
         {eyebrow && <p className="civic-kicker mb-2">{eyebrow}</p>}
         <h1 className="font-headline-lg text-headline-lg font-bold tracking-[-0.04em] text-on-surface">{title}</h1>
-        {description && <p className="mt-2 max-w-xl text-sm leading-6 text-on-surface-variant">{description}</p>}
+        {description && <p className="mt-2 max-w-[36rem] text-sm leading-6 text-on-surface-variant">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>
@@ -115,7 +115,7 @@ export function EmptyState({ icon, title, description, action }: { icon?: ReactN
     <Surface className="flex flex-col items-center justify-center px-6 py-16 text-center">
       {icon && <div className="mb-4 text-primary/70">{icon}</div>}
       <h2 className="font-headline-md text-headline-md font-bold text-on-surface">{title}</h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-on-surface-variant">{description}</p>
+      <p className="mt-2 w-full max-w-[28rem] text-pretty text-sm leading-6 text-on-surface-variant">{description}</p>
       {action && <div className="mt-6">{action}</div>}
     </Surface>
   );
@@ -166,7 +166,7 @@ export function Dialog({ open, title, description, onClose, children }: { open: 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-[#172535]/35 p-0 backdrop-blur-sm sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="civic-dialog-title" className="w-full max-w-lg rounded-t-2xl border border-[#d8d6cf] bg-[#fffefa] p-6 shadow-[0_24px_80px_rgba(23,37,53,0.2)] sm:rounded-2xl">
+      <div role="dialog" aria-modal="true" aria-labelledby="civic-dialog-title" className="w-full max-w-[32rem] rounded-t-2xl border border-[#d8d6cf] bg-[#fffefa] p-6 shadow-[0_24px_80px_rgba(23,37,53,0.2)] sm:rounded-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="civic-dialog-title" className="font-headline-md text-headline-md font-bold text-on-surface">{title}</h2>

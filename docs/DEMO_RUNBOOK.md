@@ -40,4 +40,4 @@ Open `http://localhost:3000`.
 9. Resolve the seeded in-progress issue with a resolution note and after-photo.
 10. Show the lifecycle history and Before/After evidence on Issue Detail.
 
-The fixture includes examples for Reported, Verified, Assigned, In Progress, Resolved, and Duplicate states, plus comments, reactions, followers, notifications, and history.
+The fixture includes Bangladesh-focused examples from Dhaka, Chattogram, and Sylhet: waste collection near Karwan Bazar, a Dhanmondi streetlight outage, waterlogging at Muradpur, a Farmgate pothole, and a repaired Zindabazar bench. It covers Reported, Verified, Assigned, In Progress, Resolved, and Duplicate states, plus comments, reactions, followers, notifications, lifecycle history, and resolution evidence.

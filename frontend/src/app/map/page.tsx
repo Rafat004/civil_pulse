@@ -347,7 +347,7 @@ export default function MapView() {
         </div>
       )}
       {error && (
-        <div role="alert" className="absolute top-4 right-4 z-[1000] max-w-sm rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error shadow-lg">
+        <div role="alert" className="absolute top-4 right-4 z-[1000] max-w-[24rem] rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error shadow-lg">
           {error}
         </div>
       )}
