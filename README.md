@@ -10,7 +10,7 @@ The platform includes a social-style civic feed, interactive maps, persistent ci
 
 ## 🎥 Presentation Video
 
-[Watch the CivicPulse Final Project Presentation](YOUR_PRESENTATION_VIDEO_LINK)
+[Watch the CivicPulse Final Project Presentation](https://drive.google.com/file/d/1RqSLOPKB4zlmYPGAxW6uBYic7tZ6EGLz/view?usp=drivesdk)
 
 ---
 
