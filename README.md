@@ -1,8 +1,16 @@
 # 🏛️ CivicPulse
 
-**Community-driven civic complaint prioritization and smart city issue mapping platform.**
+**Community-driven civic issue reporting, tracking, and smart city mapping platform.**
 
-CivicPulse empowers citizens to report, discover, discuss, follow, and track local issues — from potholes to broken streetlights — in real time. Administrators can review, verify, assign, and resolve reports through a dedicated workspace. The platform features live maps, persistent civic reactions, status history, notifications, duplicate detection, and role-based access control.
+CivicPulse empowers citizens to report, discover, discuss, follow, and track local issues, from potholes to broken streetlights, in real time. Administrators can verify, assign, manage, and resolve reports through a dedicated operations workspace.
+
+The platform includes a social-style civic feed, interactive maps, persistent civic reactions, comments, following, notifications, status history, duplicate detection, smart suggestions, resolution evidence, and role-based access control.
+
+---
+
+## 🎥 Presentation Video
+
+[Watch the CivicPulse Final Project Presentation](YOUR_PRESENTATION_VIDEO_LINK)
 
 ---
 
@@ -13,113 +21,173 @@ CivicPulse empowers citizens to report, discover, discuss, follow, and track loc
 - [System Architecture](#-system-architecture)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
-  - [Prerequisites](#prerequisites)
-  - [1. Supabase Setup](#1-supabase-setup)
-  - [2. Frontend Setup](#2-frontend-setup)
-  - [3. Backend Setup](#3-backend-setup)
 - [User Roles](#-user-roles)
 - [API Endpoints](#-api-endpoints)
 - [Database Schema](#-database-schema)
+- [Team Members & Contributions](#-team-members--contributions)
 
 ---
 
 ## ✨ Features
 
-### For Citizens (Civic Users)
-- 📝 **Report Issues** — Submit civic complaints with title, description, category, zone, map pin location, and photo evidence
-- 🗺️ **Interactive Map** — Browse all reported issues on a live, searchable Leaflet map with Voyager tiles
-- 🤝 **Civic Reactions** — Mark issues as affected or confirmed with persistent database-backed counts
-- 📊 **Dashboard** — Discover latest, most affected, and recently updated issues in real time
-- 📋 **My Reports** — Track the status of your own submitted reports with a visual timeline
+### For Citizens
+
+- 📝 **Report Issues** — Submit civic problems with title, description, category, map location, and photo evidence
+- 📰 **Civic Social Feed** — Discover community issues through Latest, Most Affected, and Recently Updated views
+- 🗺️ **Interactive Map** — Browse and filter reported issues geographically
+- 🤝 **Civic Reactions** — Mark issues as `Affected` or `Confirmed`
+- 💬 **Community Discussion** — Comment on reported issues and view official responses
+- 🔔 **Following & Notifications** — Follow issues and receive important updates
+- 📋 **My Reports** — Track personal reports and their lifecycle progress
+- 📸 **Resolution Evidence** — View before-and-after evidence for resolved issues
 
 ### For Administrators
-- ✅ **Approvals Dashboard** — Dedicated table view to review, filter, and manage all reported issues
-- 🔄 **Status Management** — Update issue status (Reported → Verified → In Progress → Resolved) in one click
-- 🛡️ **Row Level Security** — Only admins can modify report statuses via Supabase RLS policies
+
+- 🛠️ **Admin Operations Workspace** — Review, search, filter, and manage civic issues
+- 🔄 **Lifecycle Management** — Move reports through:
+
+```text
+Reported → Verified → Assigned → In Progress → Resolved
+```
+
+Special states include:
+
+```text
+Rejected · Duplicate · Reopened
+```
+
+- 🏢 **Department Assignment** — Assign issues to responsible departments
+- ✅ **Issue Verification** — Verify legitimate civic reports
+- 📢 **Official Responses** — Participate in issue discussions as an official administrator
+- 📸 **Resolution Workflow** — Add resolution notes and after-photo evidence
+- 🔁 **Reopening** — Reopen resolved issues when further work is required
+
+### Smart Features
+
+- 🔍 **Duplicate Detection** — Finds likely existing reports using location, category, title, and description similarity
+- 🧠 **Category Suggestion** — Suggests a category from the Citizen's report text
+- 🏢 **Department Recommendation** — Suggests an appropriate department for Administrator review
+
+Smart features are advisory. Citizens and Administrators remain responsible for final decisions.
 
 ### Platform-Wide
-- 🔐 **Authentication** — Full login/signup flow powered by Supabase Auth
-- 🔍 **Duplicate Detection** — Advisory Spring intelligence ranks nearby candidates using location, category, title, and description similarity
-- 🧠 **Smart Suggestions** — Citizens can review a category suggestion and administrators can review a department recommendation
-- 📡 **Real-Time Updates** — Supabase Realtime broadcasts new reports and status changes to all connected clients instantly
-- 📰 **News Scanner** — Backend service scrapes RSS feeds for potential civic issues
+
+- 🔐 **Authentication** — Login/signup through Supabase Auth
+- 🛡️ **Role-Based Access Control** — Citizen/Admin permissions enforced with Supabase RLS
+- 📡 **Realtime Updates** — Live updates for reports, reactions, comments, notifications, and workflow changes
+- 🕒 **Status History** — Persistent lifecycle history for every report
+- 📰 **News Scanner** — Optional backend RSS/news scanning utility
 
 ---
 
 ## 🛠️ Tech Stack
 
 | Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Frontend** | Next.js 16 (App Router) | React-based SSR/CSR framework |
-| **UI Library** | React 19 | Component-based UI |
-| **Styling** | Tailwind CSS v4 | Utility-first CSS with custom design tokens |
-| **Maps** | Leaflet + react-leaflet | Interactive maps with CartoDB Voyager tiles |
-| **Charts** | Recharts | Data visualization (installed, extensible) |
-| **Database** | Supabase (PostgreSQL) | Managed Postgres with Auth, Storage, Realtime |
-| **Auth** | Supabase Auth | Email/password authentication with RBAC |
-| **Realtime** | Supabase Realtime | WebSocket-based live data subscriptions |
-| **Backend** | Spring Boot 3 (Java) | REST API for intelligence services |
-| **Web Scraping** | Jsoup | HTML/RSS parsing for news scanning |
-| **Fonts** | Inter + Plus Jakarta Sans | Google Fonts for premium typography |
+|-------|------------|---------|
+| **Frontend** | Next.js 16.2 | Application framework and App Router |
+| **UI** | React 19 + TypeScript | Component-based frontend development |
+| **Styling** | Tailwind CSS v4 | Responsive UI and custom design system |
+| **UI Utilities** | Lucide React + shadcn/ui tooling | Icons and UI foundations |
+| **Maps** | Leaflet 1.9 + React Leaflet 5 | Interactive maps and location selection |
+| **Map Tiles** | Google raster tiles | Base map display |
+| **Location Search** | OpenStreetMap Nominatim | Place/location search |
+| **Database** | Supabase PostgreSQL | Persistent application data |
+| **Authentication** | Supabase Auth | Citizen/Admin authentication |
+| **Storage** | Supabase Storage | Report and resolution images |
+| **Realtime** | Supabase Realtime | Live application updates |
+| **Backend** | Spring Boot 3.2.5 + Java 17 | Intelligence REST API |
+| **Web Scraping** | Jsoup 1.17 | RSS/news parsing |
+| **Fonts** | Inter + Plus Jakarta Sans | Application typography |
 
 ---
 
 ## 🏗️ System Architecture
 
+CivicPulse separates responsibilities between three main layers:
+
+```text
+Next.js     → presentation and user interaction
+Supabase    → database, authentication, storage, realtime, and authorization
+Spring Boot → advisory intelligence and analysis
+```
+
 ![System Architecture](diagram%20%282%29.svg)
+
+Core CRUD operations are handled through Supabase, while Spring Boot provides supplementary smart features.
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 civic_pulse/
-├── frontend/                          # Next.js 16 Application
+├── frontend/
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── layout.tsx             # Root layout (AuthProvider, NavBars)
-│   │   │   ├── page.tsx               # Dashboard (Hero + Map + Feed)
-│   │   │   ├── globals.css            # Design tokens & theme
-│   │   │   ├── map/page.tsx           # Full-screen interactive map
-│   │   │   ├── my-reports/page.tsx    # User's own reports (civic only)
-│   │   │   ├── approvals/page.tsx     # Admin approvals table
+│   │   │   ├── page.tsx               # Social-style civic feed
+│   │   │   ├── issues/[id]/page.tsx   # Issue Detail
+│   │   │   ├── map/page.tsx           # Interactive public map
+│   │   │   ├── my-reports/page.tsx    # Citizen's reports
+│   │   │   ├── notifications/page.tsx # Notifications
+│   │   │   ├── approvals/page.tsx     # Admin Operations workspace
 │   │   │   └── auth/
-│   │   │       ├── login/page.tsx     # Login page
-│   │   │       └── register/page.tsx  # Citizen registration page
+│   │   │       ├── login/page.tsx
+│   │   │       └── register/page.tsx
+│   │   │
 │   │   ├── components/
-│   │   │   ├── AuthProvider.tsx       # Global auth context (user, role)
-│   │   │   ├── TopNavBar.tsx          # Desktop nav (role-aware)
-│   │   │   ├── BottomNavBar.tsx       # Mobile nav (role-aware)
-│   │   │   ├── MapComponent.tsx       # Leaflet map wrapper
-│   │   │   ├── GlobalModalProvider.tsx# Event-driven modal system
-│   │   │   ├── NewReportModal.tsx     # Report submission form
-│   │   │   ├── TrendingComplaintCard.tsx # Feed card with civic reactions
-│   │   │   ├── MyReportCard.tsx       # Report card with timeline
-│   │   │   └── StatusBadge.tsx        # Status pill component
+│   │   │   ├── AuthProvider.tsx
+│   │   │   ├── TopNavBar.tsx
+│   │   │   ├── BottomNavBar.tsx
+│   │   │   ├── MapComponent.tsx
+│   │   │   ├── NewReportModal.tsx
+│   │   │   ├── TrendingComplaintCard.tsx
+│   │   │   ├── MyReportCard.tsx
+│   │   │   └── SmartSuggestion.tsx
+│   │   │
+│   │   ├── services/
+│   │   │   ├── feed.ts
+│   │   │   ├── issues.ts
+│   │   │   ├── reactions.ts
+│   │   │   ├── comments.ts
+│   │   │   ├── following.ts
+│   │   │   ├── notifications.ts
+│   │   │   ├── admin.ts
+│   │   │   └── intelligence.ts
+│   │   │
 │   │   └── lib/
-│   │       └── supabaseClient.ts      # Supabase JS client singleton
-│   ├── .env.local                     # Supabase credentials
+│   │       ├── constants.ts
+│   │       ├── config.ts
+│   │       ├── mapUtils.ts
+│   │       ├── supabaseClient.ts
+│   │       └── types.ts
+│   │
 │   └── package.json
 │
-├── backend/                           # Spring Boot Application
+├── backend/
 │   └── src/main/
 │       ├── java/com/civicpulse/
-│       │   ├── CivicPulseApplication.java      # Main entry point
-│       │   ├── config/
-│       │   │   └── CorsConfig.java              # CORS for localhost:3000
 │       │   ├── controller/
-│       │   │   ├── IntelligenceController.java  # analytics/news endpoints
-│       │   │   └── SmartController.java         # advisory smart endpoints
+│       │   │   ├── IntelligenceController.java
+│       │   │   └── SmartController.java
 │       │   └── service/
-│       │       ├── IntelligenceDataSource.java  # public Supabase projections
-│       │       ├── SmartService.java             # duplicate/classification scoring
-│       │       ├── SupabaseClientService.java   # REST client for analytics
-│       │       └── NewsScannerService.java      # optional RSS scanner
+│       │       ├── IntelligenceDataSource.java
+│       │       ├── SmartService.java
+│       │       ├── SupabaseClientService.java
+│       │       └── NewsScannerService.java
 │       └── resources/
-│           └── application.yml                  # Server config (port 8082)
+│           └── application.yml
 │
-└── supabase/
-    └── schema.sql                     # Full database schema + RLS policies
+├── supabase/
+│   ├── migrations/
+│   ├── schema.sql
+│   └── demo_seed.sql
+│
+└── docs/
+    ├── PRODUCT_SPEC.md
+    ├── ARCHITECTURE.md
+    ├── DATABASE.md
+    ├── ROADMAP.md
+    └── DEMO_RUNBOOK.md
 ```
 
 ---
@@ -128,131 +196,208 @@ civic_pulse/
 
 ### Prerequisites
 
-- **Node.js** v18+ and **npm**
-- **Java** 17+ and **Maven** (or use the included Maven wrapper)
-- A **Supabase** account ([supabase.com](https://supabase.com))
+- **Node.js** 18+ and npm
+- **Java** 17+
+- Maven or the included Maven Wrapper
+- A **Supabase** project
 
 ### 1. Supabase Setup
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and paste the entire contents of `supabase/schema.sql`, then click **Run**
-3. Go to **Authentication → Providers → Email** and **disable** "Confirm email" (for development)
-4. Copy your **Project URL** and **Anon Key** from **Settings → API**
+For a fresh project, run:
+
+```text
+supabase/schema.sql
+```
+
+through the Supabase SQL Editor.
+
+Enable Email/Password authentication and obtain the project URL and public anon key from Supabase.
 
 ### 2. Frontend Setup
 
 ```bash
-# Navigate to frontend directory
 cd frontend
-
-# Install dependencies
 npm install
+```
 
-# Create environment file
-# Edit .env.local and add your Supabase credentials:
-#   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+Create `frontend/.env.local`:
 
-# Start the development server
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8082
+```
+
+Then run:
+
+```bash
 npm run dev
 ```
 
-The frontend will be available at **http://localhost:3000**
+Frontend:
+
+```text
+http://localhost:3000
+```
 
 ### 3. Backend Setup
 
+Configure:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co/rest/v1/
+SUPABASE_KEY=your-public-anon-key
+DUPLICATE_RADIUS_METERS=500
+```
+
+Then run:
+
 ```bash
-# Navigate to backend directory
 cd backend
-
-# Run using Maven wrapper (no Maven installation needed)
-# On Windows:
-.\mvnw.cmd spring-boot:run
-
-# On macOS/Linux:
 ./mvnw spring-boot:run
 ```
 
-The backend API will be available at **http://localhost:8082**
+On Windows:
 
-> **Note:** The backend is optional for core functionality. The frontend works independently with Supabase for CRUD operations. The backend provides supplementary intelligence features (duplicate detection, news scanning).
+```powershell
+.\mvnw.cmd spring-boot:run
+```
 
-### 4. Reproducible demo setup
+Backend:
 
-Follow [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) to create the private Citizen and Administrator accounts and load realistic reports, reactions, comments, followers, notifications, status history, and resolution evidence with `supabase/demo_seed.sql`.
+```text
+http://localhost:8082
+```
+
+> The Spring Boot backend provides supplementary intelligence features. Core CivicPulse functionality remains Supabase-backed.
+
+### 4. Demo Setup
+
+See:
+
+[`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md)
+
+for the reproducible Citizen/Admin demonstration setup and demo seed data.
 
 ---
 
 ## 👥 User Roles
 
-| Feature | Civic (Citizen) | Admin |
-|---------|:-:|:-:|
-| View Dashboard & Map | ✅ | ✅ |
-| Submit New Reports | ✅ | ❌ |
+| Feature | Citizen | Admin |
+|---------|:------:|:-----:|
+| View Feed & Map | ✅ | ✅ |
+| Submit Reports | ✅ | ❌ |
+| Edit Own `Reported` Report | ✅ | ❌ |
 | Mark Affected / Confirmed | ✅ | ✅ |
-| View "My Reports" | ✅ | ❌ |
-| View "Approvals" Tab | ❌ | ✅ |
-| Change Report Status | ❌ | ✅ |
-| See Admin Badge | ❌ | ✅ |
+| Comment on Issues | ✅ | ✅ |
+| Follow Issues | ✅ | ✅ |
+| Receive Notifications | ✅ | ✅ |
+| View My Reports | ✅ | ❌ |
+| Access Admin Operations | ❌ | ✅ |
+| Verify Issues | ❌ | ✅ |
+| Assign Departments | ❌ | ✅ |
+| Change Lifecycle Status | ❌ | ✅ |
+| Mark Duplicate / Rejected | ❌ | ✅ |
+| Resolve / Reopen Issues | ❌ | ✅ |
 
-Normal registration always creates a `civic` profile; administrator access is provisioned separately for trusted demo or project accounts. Roles are stored in `profiles`, and Row Level Security (RLS) policies enforce permissions at the database level.
+Normal registration always creates a `civic` profile. Administrator access is provisioned separately through a trusted setup process.
 
 ---
 
 ## 🔌 API Endpoints
 
-### Spring Boot Backend (`localhost:8082`)
+### Spring Boot Intelligence API
+
+Base URL:
+
+```text
+http://localhost:8082/api/v1/intelligence
+```
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/intelligence/cluster-duplicates` | Return advisory duplicate candidates using location and text similarity |
-| `POST` | `/api/v1/intelligence/suggest-category` | Suggest a report category from title and description |
-| `POST` | `/api/v1/intelligence/recommend-department` | Recommend a department for administrator review |
-| `GET` | `/api/v1/intelligence/audit-fairness` | Audit report distribution across zones |
-| `GET` | `/api/v1/intelligence/scan-news` | Scrape RSS feeds for potential civic issues |
-
-### Supabase (Direct Client Access)
-
-| Table | Operations | Auth Required |
-|-------|-----------|:---:|
-| `reports` | SELECT | ❌ (public) |
-| `reports` | INSERT | ✅ (any authenticated user) |
-| `reports` | UPDATE | ✅ (admin only) |
-| `report_reactions` | SELECT | ❌ (public) |
-| `report_reactions` | INSERT/DELETE | ✅ (authenticated owner) |
-| `profiles` | SELECT (own) | ✅ (own profile only) |
+| `POST` | `/cluster-duplicates` | Return likely duplicate reports |
+| `POST` | `/suggest-category` | Suggest a civic report category |
+| `POST` | `/recommend-department` | Recommend a department for Admin review |
+| `GET` | `/audit-fairness` | Summarize report distribution by zone |
+| `GET` | `/scan-news` | Scan an RSS/news source |
 
 ---
 
 ## 🗄️ Database Schema
 
 ### `profiles`
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID (PK, FK → auth.users) | User's auth ID |
-| `role` | TEXT | `'civic'` or `'admin'` |
-| `created_at` | TIMESTAMPTZ | Auto-set on creation |
+
+Stores user identity and role information.
+
+Main fields:
+
+```text
+id
+role
+full_name
+created_at
+```
 
 ### `reports`
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID (PK) | Auto-generated |
-| `title` | TEXT | Issue title |
-| `description` | TEXT | Detailed description |
-| `category` | TEXT | One of the documented civic issue categories |
-| `status` | TEXT | Reported, Verified, Assigned, In Progress, Resolved, Rejected, Duplicate, or Reopened |
-| `zone` | TEXT | Geographic area label |
-| `lat` / `lng` | DOUBLE PRECISION | GPS coordinates |
-| `user_id` | UUID (FK → auth.users) | Submitter |
-| `image_url` | TEXT | Photo evidence URL (Supabase Storage) |
-| `created_at` | TIMESTAMPTZ | Submission timestamp |
+
+Stores civic reports and lifecycle information.
+
+Main fields:
+
+```text
+id
+title
+description
+category
+status
+zone
+lat
+lng
+user_id
+image_url
+department_id
+duplicate_of
+resolution_note
+resolution_image_url
+resolved_at
+created_at
+updated_at
+```
 
 ### `report_reactions`
 
-Stores one `affected` or `confirmed` reaction per user and report. Counts are calculated from this table; no frontend-only counters are authoritative.
+Stores persistent:
+
+```text
+affected
+confirmed
+```
+
+reactions.
+
+### Additional Main Tables
+
+- `comments`
+- `report_followers`
+- `notifications`
+- `report_status_history`
+- `departments`
+
+Supabase Row Level Security and trusted database functions protect Citizen/Admin permissions and lifecycle changes.
+
+---
+
+## 👥 Team Members & Contributions
+
+| Member | Student ID | Contribution |
+|--------|------------|--------------|
+| **Rafatul Islam** | **230041228** | Developed the foundational implementation of CivicPulse, establishing the initial project structure and core functionality. |
+| **Abdullah Ibn Yousuf** | **230041246** | Added and improved major project features, strengthened existing functionality, improved the user experience, and integrated later parts of the system. |
+| **Rakin Al Shahriar** | **230041208** | Contributed to project planning and design decisions, including system architecture, technology-stack selection, feature planning, and overall development direction. |
 
 ---
 
 ## 📜 License
 
-This project is for educational and demonstration purposes.
+This project was developed as a university course project for educational and demonstration purposes.
